@@ -1,0 +1,2 @@
+class PyFilterBasedSelection:
+    pass

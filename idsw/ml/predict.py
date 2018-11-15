@@ -1,0 +1,2 @@
+class PyPredict:
+    pass    

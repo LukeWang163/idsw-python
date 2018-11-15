@@ -1,0 +1,2 @@
+class PyFeatureEncoding:
+    pass

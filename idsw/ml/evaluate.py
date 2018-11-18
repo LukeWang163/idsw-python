@@ -7,6 +7,12 @@ class PyCrossValidate:
 
 class PyEvaluateBinaryClassifier:
     def __init__(self, args):
+        """
+        Standalone and Spark version for evaluating binary classifier
+        @param args: dict
+        featureCols: list
+        labelCol: string
+        """
         self.inputUrl1 = args["input1"][0]["value"]
         self.inputUrl2 = args["input"][0]["value"]
         self.outputUrl1 = args["output"][0]["value"]
@@ -15,6 +21,7 @@ class PyEvaluateBinaryClassifier:
         self.originalDF = None
         self.transformDF = None
         self.result = None
+
     def getIn(self):
         if self.inputUrl1.endswith(".pkl"):
             print("using scikit-learn")

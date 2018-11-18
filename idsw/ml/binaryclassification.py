@@ -8,6 +8,15 @@ class PyDecisionTree:
 
 class PyRandomForest:
     def __init__(self, args):
+        """
+        Standalone version for initializing RandomForest binary classifier
+        @param args: dict
+        n_estimators: int
+        criterion: string one of "gini" and "entropy"
+        max_depth: int
+        min_samples_split: int
+        min_samples_leaf: int
+        """
         self.outputUrl1 = args["output"][0]["value"]
         self.param = args["param"]
         self.model = None
@@ -61,6 +70,15 @@ class PyAutoML:
 
 class SparkRandomForest:
     def __init__(self, args):
+        """
+        Spark version for initializing RandomForest binary classifier
+        @param args: dict
+        n_estimators: int
+        criterion: string one of "gini" and "entropy"
+        max_depth: int
+        min_samples_split: int
+        min_samples_leaf: int
+        """
         self.outputUrl1 = args["output"][0]["value"]
         self.param = args["param"]
         self.model = None

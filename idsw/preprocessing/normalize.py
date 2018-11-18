@@ -7,6 +7,11 @@ class PyGroupIntoBins:
 
 class PyNormalizeData:
     def __init__(self, args):
+        """
+        Standalone version for normalizing data, including minmax and zscore
+        @param args: dict
+        columns: list
+        """
         self.transformedDF = None
         self.parameterDF = None
         self.inputUrl1 = args["input"][0]["value"]
@@ -78,6 +83,11 @@ class SparkGroupIntoBins:
 
 class SparkNormalizeData:
     def __init__(self, args):
+        """
+        Spark version for normalizing data, including minmax and zscore
+        @param args: dict
+        columns: list
+        """
         self.transformedDF = None
         self.parameterDF = None
         self.inputUrl1 = args["input"][0]["value"]

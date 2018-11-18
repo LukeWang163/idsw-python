@@ -24,7 +24,15 @@ class PyGroupBy:
 class PyTypeTransform:
 
     def __init__(self, args):
-
+        """
+        Standalone version for type transformation
+        @param args: dict
+        toDoubleColumns: list
+        defaultDoubleValue: double
+        toIntColumns: list
+        defaultIntValue: int
+        toCategoricalColumns: list
+        """
         self.originalDF = None
         self.transformedDF = None
         self.paramDF = None
@@ -48,13 +56,13 @@ class PyTypeTransform:
         try:
             self.defaultIntValue = self.param["defaultIntValue"]
         except KeyError:
-            self.defaultDoubleValue = 0.0
+            self.defaultIntValue = 0
         try:
             self.toCategoricalColumns = self.param["toCategoricalColumns"].split(",")
         except KeyError:
             self.toCategoricalColumns = None
 
-        self.mode = (self.param["model"])
+        self.mode = (self.param["mode"])
 
     def getIn(self):
 
@@ -105,6 +113,7 @@ class PyTypeTransform:
         # data.PyWriteHive(self.paramDF, self.outputUrl2)
         data.PyWriteCSV(self.transformedDF, self.outputUrl1)
         data.PyWriteCSV(self.paramDF, self.outputUrl2+".csv")
+
 
 class PyReplace:
     pass

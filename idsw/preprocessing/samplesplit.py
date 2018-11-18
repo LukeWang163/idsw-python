@@ -7,6 +7,14 @@ class PySampleData:
 
 class PySplitData:
     def __init__(self, args):
+        """
+        Standalone version for split data, including byRatio and byThreshold
+        @param args: dict
+        splitBy: string one of byRation and byThreshold
+        ratio: double
+        thresholdColumn: stirng
+        threshold: double
+        """
         self.originalDF = None
         self.DF1 = None
         self.DF2 = None
@@ -52,6 +60,14 @@ class SparkSampleData:
 class SparkSplitData:
 
     def __init__(self, args):
+        """
+         Standalone version for split data, including byRatio and byThreshold
+         @param args: dict
+         splitBy: string one of byRation and byThreshold
+         ratio: double
+         thresholdColumn: stirng
+         threshold: double
+         """
         self.originalDF = None
         self.DF1 = None
         self.DF2 = None

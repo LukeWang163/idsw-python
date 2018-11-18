@@ -3,6 +3,12 @@ from ..data import data
 
 class PyTrainModel:
     def __init__(self, args):
+        """
+        Standalone and Spark version for training model
+        @param args: dict
+        featureCols: list
+        labelCol: String
+        """
         self.originalDF = None
         self.inputUrl1 = args["input"][0]["value"]
         self.inputUrl2 = args["input"][0]["value"]

@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Time    : 2018/11/19
+# @Author  : Luke
+# @File    : idsw.data.data.py
+# @Desc    : Scripts for reading and writing data from/to multiple sources.
+
+
 def PyReadHive(inputUrl):
     """
     Standalone version for reading data from Hive
@@ -19,13 +27,19 @@ def PyWriteHive(df, outputUrl):
     """
     from .. import utils
     import os
+    # 映射获得表结构
     dtypeDict = utils.mapping_df_types(df)
     dtypeString = ",".join("{} {}".format(*i) for i in dtypeDict.items())
+    # 获得Hive连接
     cursor = utils.get_cursor()
+    # 建表
     cursor.execute("drop table if exists %s" % outputUrl)
     cursor.execute("create table %s (%s) row format delimited fields terminated by '\t'" % (outputUrl, dtypeString))
+    # 将数据写到本地临时txt文件
     df.to_csv("/tmp/" + outputUrl + ".txt", header=False, index=False, sep="\t")
+    # 将本地临时txt文件内容插入表
     cursor.execute("load data local inpath '%s' overwrite into table %s" % ("/tmp/" + outputUrl + ".txt", outputUrl))
+    # 删除本地临时txt文件
     os.remove("/tmp/" + outputUrl + ".txt")
     print("writen to Hive")
     return

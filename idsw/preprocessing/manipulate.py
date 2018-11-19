@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Time    : 2018/11/19
+# @Author  : Luke
+# @File    : idsw.preprocessing.manipulate.py
+# @Desc    : Scripts for manipulating data. 数据预处理->数据操作
+
+
 from ..data import data
 
 
@@ -73,15 +81,18 @@ class PyTypeTransform:
         import pandas as pd
         from sklearn.preprocessing import LabelEncoder
         from sklearn.utils import column_or_1d
+        # 区分训练或预测，可参照中科院的BDA-studio拆分成两个组件
         if self.mode == "train":
             self.transformedDF = self.originalDF.copy()
             if self.toIntColumns is not None:
+                # 转换错误的值不报错，而是以NaN替换，再以defaultIntValue填充缺失值
                 for col in self.toIntColumns:
                     self.transformedDF[col] = pd.to_numeric(self.originalDF[col], errors='coerce', downcast='int')\
                         .fillna(self.defaultIntValue)
 
             if self.toDoubleColumns is not None:
                 for col in self.toDoubleColumns:
+                    # 转换错误的值不报错，而是以NaN替换，再以defaultDoubleValue填充缺失值
                     self.transformedDF[col] = pd.to_numeric(self.originalDF[col], errors='coerce', downcast='float')\
                         .fillna(self.defaultDoubleValue)
 
@@ -91,13 +102,16 @@ class PyTypeTransform:
                     le = LabelEncoder()
                     le.fit(self.transformedDF[col])
                     self.transformedDF[col] = le.transform(self.transformedDF[col])
+                    # 以#作为标识符记录类型转换的class
                     paramDict[col] = "#".join(list(le.classes_))
                 self.paramDF = pd.DataFrame(list(paramDict.items()), columns=["col", "classes"])
 
         elif self.mode == "predict":
             import numpy as np
             # self.paramDF = data.PyReadHive(self.outputUrl2)
+            # 读取
             self.paramDF = data.PyReadCSV(self.outputUrl2)
+            # self.paramDF = data.PyReadHive(self.outputUrl2)
             self.transformedDF = self.originalDF.copy()
             paramList = self.paramDF.to_dict("records")
             for record in paramList:

@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Time    : 2018/11/19
+# @Author  : Luke
+# @File    : idsw.preprocessing.samplesplit.py
+# @Desc    : Scripts for sampling and spliting. 数据预处理->采样/过滤
+
 from ..data import data
 
 
@@ -31,11 +38,13 @@ class PySplitData:
     def execute(self):
 
         def splitByRatio():
+            # 根据设定的比例进行拆分
             from sklearn.model_selection import train_test_split
             ratio = float(self.param["ratio"])
             self.DF1, self.DF2 = train_test_split(self.originalDF, train_size=ratio)
 
         def splitByThreshold():
+            # 根据对设定列设定的阈值进行拆分
             thresholdColumn = self.param["thresholdColumn"]
             threshold = float(self.param["threshold"])
             self.DF1 = self.originalDF[self.originalDF[thresholdColumn] >= threshold]
@@ -94,10 +103,12 @@ class SparkSplitData:
     def execute(self):
 
         def splitByRatio():
+            # 根据设定的比例进行拆分
             ratio = float(self.param["ratio"])
             self.DF1, self.DF2 = self.originalDF.randomSplit([ratio, 1-ratio])
 
         def splitByThreshold():
+            # 根据对设定列设定的阈值进行拆分
             thresholdColumn = self.param["thresholdColumn"]
             threshold = float(self.param["threshold"])
             self.DF1 = self.originalDF.filter(self.originalDF[thresholdColumn] >= threshold)

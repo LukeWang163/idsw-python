@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Time    : 2018/11/19
+# @Author  : Luke
+# @File    : idsw.featuring.transform.py
+# @Desc    : Scripts for feature transformation. 特征工程->特征变换
+
+
 class PyPCA:
     pass
 

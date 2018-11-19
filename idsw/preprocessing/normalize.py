@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Time    : 2018/11/19
+# @Author  : Luke
+# @File    : idsw.preprocessing.normalize.py
+# @Desc    : Scripts for normalizing data in different ways. 数据预处理->数据标准化
 from ..data import data
 
 
@@ -40,6 +46,7 @@ class PyNormalizeData:
 
         def minMax():
             if (self.parameterDF is None) & (self.columns is not None):
+                # 没有提供参数表，执行fit_transform操作
                 from sklearn.preprocessing import MinMaxScaler
                 scaler = MinMaxScaler()
                 self.transformedDF = self.originalDF.copy()
@@ -47,6 +54,7 @@ class PyNormalizeData:
                 self.parameterDF = pd.DataFrame([scaler.data_min_, scaler.data_max_], columns=self.columns)
             elif self.parameterDF is not None:
                 self.transformedDF = self.originalDF.copy()
+                # 读取参数表中的参数并用于转换原始表
                 for col in self.parameterDF.columns:
                     p_min = self.parameterDF.loc[0, col]
                     p_max = self.parameterDF.loc[1, col]
@@ -54,6 +62,7 @@ class PyNormalizeData:
 
         def standard():
             if (self.parameterDF is None) & (self.columns is not None):
+                # 没有提供参数表，执行fit_transform操作
                 from sklearn.preprocessing import StandardScaler
                 standardScaler = StandardScaler()
                 self.transformedDF = self.originalDF.copy()
@@ -62,12 +71,14 @@ class PyNormalizeData:
                                                 columns=self.columns)
 
             elif self.parameterDF is not None:
+                # 读取参数表中的参数并用于转换原始表
                 self.transformedDF = self.originalDF.copy()
                 for col in self.parameterDF.columns:
                     p_mean = self.parameterDF.loc[0, col]
                     p_std = self.parameterDF.loc[1, col]
                     self.transformedDF[col] = (self.transformedDF[col] - p_mean) / p_std
 
+        # 归一化还是标准化
         mode = self.param["mode"]
         modes = {"minMax": minMax, "standard": standard}
         modes[mode]()
@@ -119,6 +130,7 @@ class SparkNormalizeData:
 
         def minMax():
             if (self.parameterDF is None) & (self.columns is not None):
+                # 没有提供参数表，执行fit_transform操作
                 mmParamList = []
                 self.transformedDF = self.originalDF
                 for col in self.columns:
@@ -134,6 +146,7 @@ class SparkNormalizeData:
                 self.parameterDF = self.spark.createDataFrame(mmParamList, ['col', 'min', 'max'])
 
             elif self.parameterDF is not None:
+                # 读取参数表中的参数并用于转换原始表
                 self.transformedDF = self.originalDF
                 self.parameterDFP = self.parameterDF.toPandas()
                 for col in self.parameterDFP["col"]:
@@ -146,6 +159,7 @@ class SparkNormalizeData:
 
         def standard():
             if (self.parameterDF is None) & (self.columns is not None):
+                # 没有提供参数表，执行fit_transform操作
                 mmParamList = []
                 self.transformedDF = self.originalDF
                 for col in self.columns:
@@ -161,6 +175,7 @@ class SparkNormalizeData:
                 self.parameterDF = self.spark.createDataFrame(mmParamList, ['col', 'avg', 'std'])
 
             elif self.parameterDF is not None:
+                # 读取参数表中的参数并用于转换原始表
                 self.transformedDF = self.originalDF
                 self.parameterDFP = self.parameterDF.toPandas()
                 for col in self.parameterDFP["col"]:
@@ -171,6 +186,7 @@ class SparkNormalizeData:
                         .drop(col)\
                         .withColumnRenamed(col + "ss", col)
 
+        # 归一化还是标准化
         mode = self.param["mode"]
         modes = {"minMax": minMax, "standard": standard}
         modes[mode]()

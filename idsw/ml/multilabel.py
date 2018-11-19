@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Time    : 2018/11/19
+# @Author  : Luke
+# @File    : idsw.ml.multilabel.py
+# @Desc    : Scripts for initializing multi-label classification models. 机器学习->模型初始化->多分类
+
+
 class PyKNN:
     pass
 
@@ -34,11 +42,18 @@ class PyRandomForest:
 
     def execute(self):
         print("using scikit-learn")
+        # 树的个数
         n_estimators = int(self.param["treeNum"])
+        # 评价标准
         criterion = self.param["criterion"]
+        # 最大树深度
         max_depth = int(self.param["maxDepth"])
+        # 最小分割样本数
         min_samples_split = int(self.param["minSamplesSplit"])
+        # 叶子节点最小样本数
         min_samples_leaf = int(self.param["minSamplesLeaf"])
+
+        # 初始化模型
         from sklearn.ensemble import RandomForestClassifier
         self.model = RandomForestClassifier(n_estimators=n_estimators, criterion=criterion, max_depth=max_depth,
                                             min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf)
@@ -91,12 +106,18 @@ class SparkRandomForest:
         from pyspark.ml.classification import RandomForestClassifier
         from pyspark.ml import Pipeline
 
+        # 树的个数
         n_estimators = int(self.param["treeNum"])
+        # 评价标准
         criterion = self.param["criterion"]
+        # 最大树深度
         max_depth = int(self.param["maxDepth"])
+        # 最小分割样本数
         min_samples_split = int(self.param["minSamplesSplit"])
+        # 叶子节点最小样本数
         min_samples_leaf = int(self.param["minSamplesLeaf"])
 
+        # 以Pipeline的模式初始化模型，方便统一接口加载模型
         self.model = Pipeline(stages=[
             RandomForestClassifier(numTrees=n_estimators, impurity=criterion,
                                    maxDepth=max_depth,

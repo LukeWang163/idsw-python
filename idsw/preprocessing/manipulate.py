@@ -5,8 +5,7 @@
 # @File    : idsw.preprocessing.manipulate.py
 # @Desc    : Scripts for manipulating data. 数据预处理->数据操作
 
-
-from ..data import data
+from ..data.data import dataUtil
 
 
 class PyJoin:
@@ -31,7 +30,7 @@ class PyGroupBy:
 
 class PyTypeTransform:
 
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
         Standalone version for type transformation
         @param args: dict
@@ -50,7 +49,7 @@ class PyTypeTransform:
         self.outputUrl2 = self.outputUrl1+"toCategorical"
         self.param = args["param"]
         try:
-            self.toDoubleColumns = self.param["toDouble"].split(",")
+            self.toDoubleColumns = self.param["toDouble"]
         except KeyError:
             self.toDoubleColumns = None
         try:
@@ -58,7 +57,7 @@ class PyTypeTransform:
         except KeyError:
             self.defaultDoubleValue = 0.0
         try:
-            self.toIntColumns = self.param["toInt"].split(",")
+            self.toIntColumns = self.param["toInt"]
         except KeyError:
             self.toIntColumns = None
         try:
@@ -66,16 +65,18 @@ class PyTypeTransform:
         except KeyError:
             self.defaultIntValue = 0
         try:
-            self.toCategoricalColumns = self.param["toCategoricalColumns"].split(",")
+            self.toCategoricalColumns = self.param["toCategoricalColumns"]
         except KeyError:
             self.toCategoricalColumns = None
 
         self.mode = (self.param["mode"])
 
+        self.dataUtil = dataUtil(args2)
+
     def getIn(self):
 
-        # self.originalDF = data.PyReadHive(self.inputUrl1)
-        self.originalDF = data.PyReadCSV(self.inputUrl1)
+        self.originalDF = self.dataUtil.PyReadHive(self.inputUrl1)
+        # self.originalDF = data.PyReadCSV(self.inputUrl1)
 
     def execute(self):
         import pandas as pd
@@ -103,15 +104,15 @@ class PyTypeTransform:
                     le.fit(self.transformedDF[col])
                     self.transformedDF[col] = le.transform(self.transformedDF[col])
                     # 以#作为标识符记录类型转换的class
-                    paramDict[col] = "#".join(list(le.classes_))
+                    paramDict[col] = "#".join(map(str, list(le.classes_)))
                 self.paramDF = pd.DataFrame(list(paramDict.items()), columns=["col", "classes"])
 
         elif self.mode == "predict":
             import numpy as np
             # self.paramDF = data.PyReadHive(self.outputUrl2)
             # 读取
-            self.paramDF = data.PyReadCSV(self.outputUrl2)
-            # self.paramDF = data.PyReadHive(self.outputUrl2)
+            # self.paramDF = self.dataUtil.PyReadCSV(self.outputUrl2)
+            self.paramDF = self.dataUtil.PyReadHive(self.outputUrl2)
             self.transformedDF = self.originalDF.copy()
             paramList = self.paramDF.to_dict("records")
             for record in paramList:
@@ -121,12 +122,11 @@ class PyTypeTransform:
                 self.transformedDF[col] = np.array([np.searchsorted(classes_, x) if x in classes_ else -1
                                                     for x in y])
 
-
     def setOut(self):
-        # data.PyWriteHive(self.transformedDF, self.outputUrl1)
+        self.dataUtil.PyWriteHive(self.transformedDF, self.outputUrl1)
         # data.PyWriteHive(self.paramDF, self.outputUrl2)
-        data.PyWriteCSV(self.transformedDF, self.outputUrl1)
-        data.PyWriteCSV(self.paramDF, self.outputUrl2+".csv")
+        # data.PyWriteCSV(self.transformedDF, self.outputUrl1)
+        # data.PyWriteCSV(self.paramDF, self.outputUrl2+".csv")
 
 
 class PyReplace:

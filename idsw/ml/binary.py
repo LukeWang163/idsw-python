@@ -4,6 +4,7 @@
 # @Author  : Luke
 # @File    : idsw.ml.binary.py
 # @Desc    : Scripts for initializing binary classification models. 机器学习->模型初始化->二分类
+from .. import utils
 
 
 class PySVM:
@@ -15,7 +16,7 @@ class PyDecisionTree:
 
 
 class PyRandomForest:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
         Standalone version for initializing RandomForest binary classifier
         @param args: dict
@@ -84,7 +85,7 @@ class PyAutoML:
 
 
 class SparkRandomForest:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
         Spark version for initializing RandomForest binary classifier
         @param args: dict
@@ -99,13 +100,8 @@ class SparkRandomForest:
         self.model = None
 
         print("using PySpark")
-        from pyspark.sql import SparkSession
 
-        self.spark = SparkSession \
-            .builder \
-            .config("spark.sql.warehouse.dir", "hdfs://10.110.18.216/user/hive/warehouse") \
-            .enableHiveSupport() \
-            .getOrCreate()
+        self.spark = utils.init_spark()
 
     def getIn(self):
         return
@@ -133,4 +129,3 @@ class SparkRandomForest:
 
     def setOut(self):
         self.model.write().overwrite().save(self.outputUrl1)
-

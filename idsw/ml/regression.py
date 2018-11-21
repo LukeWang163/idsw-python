@@ -5,6 +5,8 @@
 # @File    : idsw.ml.regression.py
 # @Desc    : Scripts for initializing regression models. 机器学习->模型初始化->回归
 
+from .. import utils
+
 
 class PyLinearRegression:
     pass
@@ -19,7 +21,7 @@ class PyGBDT:
 
 
 class PyRandomForest:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
         Standalone version for initializing RandomForest regressor
         @param args: dict
@@ -76,7 +78,7 @@ class PyAutoML:
 
 
 class SparkRandomForest:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
         Spark version for initializing RandomForest regressor
         @param args: dict
@@ -91,13 +93,8 @@ class SparkRandomForest:
         self.model = None
 
         print("using PySpark")
-        from pyspark.sql import SparkSession
 
-        self.spark = SparkSession \
-            .builder \
-            .config("spark.sql.warehouse.dir", "hdfs://10.110.18.216/user/hive/warehouse") \
-            .enableHiveSupport() \
-            .getOrCreate()
+        self.spark = utils.init_spark()
 
     def getIn(self):
         return
@@ -119,7 +116,7 @@ class SparkRandomForest:
 
         # 以Pipeline的模式初始化模型，方便统一接口加载模型
         self.model = Pipeline(stages=[
-            RandomForestRegressor(numTrees=n_estimators, impurity=criterion,
+            RandomForestRegressor(numTrees=n_estimators, impurity="variance",
                                    maxDepth=max_depth,
                                    minInstancesPerNode=min_samples_leaf)])
 

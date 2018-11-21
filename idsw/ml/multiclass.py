@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2018/11/19
 # @Author  : Luke
-# @File    : idsw.ml.multilabel.py
-# @Desc    : Scripts for initializing multi-label classification models. 机器学习->模型初始化->多分类
+# @File    : idsw.ml.multiclass.py
+# @Desc    : Scripts for initializing multi-class classification models. 机器学习->模型初始化->多分类
+
+from .. import utils
 
 
 class PyKNN:
@@ -23,9 +25,9 @@ class PyDecisionTree:
 
 
 class PyRandomForest:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
-        Standalone version for initializing RandomForest multi-label classifier
+        Standalone version for initializing RandomForest multi-class classifier
         @param args: dict
         n_estimators: int
         criterion: string one of "gini" and "entropy"
@@ -76,9 +78,9 @@ class PyAutoML:
 
 
 class SparkRandomForest:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
-        Spark version for initializing RandomForest multi-label classifier
+        Spark version for initializing RandomForest multi-class classifier
         @param args: dict
         n_estimators: int
         criterion: string one of "gini" and "entropy"
@@ -91,13 +93,8 @@ class SparkRandomForest:
         self.model = None
 
         print("using PySpark")
-        from pyspark.sql import SparkSession
 
-        self.spark = SparkSession \
-            .builder \
-            .config("spark.sql.warehouse.dir", "hdfs://10.110.18.216/user/hive/warehouse") \
-            .enableHiveSupport() \
-            .getOrCreate()
+        self.spark = utils.init_spark()
 
     def getIn(self):
         return

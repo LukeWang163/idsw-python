@@ -5,7 +5,8 @@
 # @File    : idsw.preprocessing.samplesplit.py
 # @Desc    : Scripts for sampling and spliting. 数据预处理->采样/过滤
 
-from ..data import data
+from ..data.data import dataUtil
+from .. import utils
 
 
 class PySampleData:
@@ -13,7 +14,7 @@ class PySampleData:
 
 
 class PySplitData:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
         Standalone version for split data, including byRatio and byThreshold
         @param args: dict
@@ -29,11 +30,11 @@ class PySplitData:
         self.outputUrl1 = args["output"][0]["value"]
         self.outputUrl2 = args["output"][1]["value"]
         self.param = args["param"]
-
+        self.dataUtil = dataUtil(args2)
     def getIn(self):
 
-        self.originalDF = data.PyReadCSV(self.inputUrl1)
-        # self.originalDF = data.PyReadHive(self.inputUrl1)
+        # self.originalDF = data.PyReadCSV(self.inputUrl1)
+        self.originalDF = self.dataUtil.PyReadHive(self.inputUrl1)
 
     def execute(self):
 
@@ -56,10 +57,10 @@ class PySplitData:
 
     def setOut(self):
 
-        # data.PyWriteHive(self.DF1, self.outputUrl1)
-        # data.PyWriteHive(self.DF2, self.outputUrl2)
-        data.PyWriteCSV(self.DF1, self.outputUrl1)
-        data.PyWriteCSV(self.DF2, self.outputUrl2)
+        self.dataUtil.PyWriteHive(self.DF1, self.outputUrl1)
+        self.dataUtil.PyWriteHive(self.DF2, self.outputUrl2)
+        # data.PyWriteCSV(self.DF1, self.outputUrl1)
+        # data.PyWriteCSV(self.DF2, self.outputUrl2)
 
 
 class SparkSampleData:
@@ -68,7 +69,7 @@ class SparkSampleData:
 
 class SparkSplitData:
 
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
          Standalone version for split data, including byRatio and byThreshold
          @param args: dict
@@ -88,17 +89,13 @@ class SparkSplitData:
         self.param = args["param"]
 
         print("using PySpark")
-        from pyspark.sql import SparkSession
 
-        self.spark = SparkSession \
-            .builder \
-            .config("spark.sql.warehouse.dir", "hdfs://10.110.18.216/user/hive/warehouse") \
-            .enableHiveSupport() \
-            .getOrCreate()
+        self.spark = utils.init_spark()
+        self.dataUtil = dataUtil(args2)
 
     def getIn(self):
 
-        self.originalDF = data.SparkReadHive(self.inputUrl1, self.spark)
+        self.originalDF = self.dataUtil.SparkReadHive(self.inputUrl1, self.spark)
 
     def execute(self):
 
@@ -119,5 +116,5 @@ class SparkSplitData:
         modes[mode]()
 
     def setOut(self):
-        data.PyWriteHive(self.DF1, self.outputUrl1)
-        data.PyWriteHive(self.DF2, self.outputUrl2)
+        self.dataUtil.SparkWriteHive(self.DF1, self.outputUrl1)
+        self.dataUtil.SparkWriteHive(self.DF2, self.outputUrl2)

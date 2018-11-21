@@ -4,20 +4,21 @@
 # @Author  : Luke
 # @File    : idsw.preprocessing.normalize.py
 # @Desc    : Scripts for normalizing data in different ways. 数据预处理->数据标准化
-from ..data import data
-
+from ..data.data import dataUtil
+from .. import utils
 
 class PyGroupIntoBins:
     pass
 
 
 class PyNormalizeData:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
         Standalone version for normalizing data, including minmax and zscore
         @param args: dict
         columns: list
         """
+        self.originalDF = None
         self.transformedDF = None
         self.parameterDF = None
         self.inputUrl1 = args["input"][0]["value"]
@@ -28,18 +29,20 @@ class PyNormalizeData:
         self.outputUrl1 = args["output"][0]["value"]
         self.outputUrl2 = args["output"][1]["value"]
         try:
-            self.columns = args["columns"].split(",")
+            self.columns = args["param"]["columns"]
         except KeyError as e:
             self.columns = None
         self.param = args["param"]
+        self.dataUtil = dataUtil(args2)
 
     def getIn(self):
-        self.originalDF = data.PyReadCSV(self.inputUrl1)
-
+        # self.originalDF = data.PyReadCSV(self.inputUrl1)
+        self.originalDF = self.dataUtil.PyReadHive(self.inputUrl1)
         if self.outputUrl2 == "":
             print("will execute fit_transform")
         else:
-            self.parameterDF = data.PyReadCSV(self.inputUrl2)
+            # self.parameterDF = data.PyReadCSV(self.inputUrl2)
+            self.parameterDF = self.dataUtil.PyReadHive(self.inputUrl2)
 
     def execute(self):
         import pandas as pd
@@ -84,8 +87,8 @@ class PyNormalizeData:
         modes[mode]()
 
     def setOut(self):
-        data.PyWriteCSV(self.transformedDF, self.outputUrl1)
-        data.PyWriteCSV(self.parameterDF, self.outputUrl2)
+        self.dataUtil.PyWriteCSV(self.transformedDF, self.outputUrl1)
+        self.dataUtil.PyWriteCSV(self.parameterDF, self.outputUrl2)
 
 
 class SparkGroupIntoBins:
@@ -93,12 +96,13 @@ class SparkGroupIntoBins:
 
 
 class SparkNormalizeData:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
         Spark version for normalizing data, including minmax and zscore
         @param args: dict
         columns: list
         """
+        self.originalDF = None
         self.transformedDF = None
         self.parameterDF = None
         self.inputUrl1 = args["input"][0]["value"]
@@ -109,21 +113,17 @@ class SparkNormalizeData:
         self.outputUrl1 = args["output"][0]["value"]
         self.outputUrl2 = args["output"][1]["value"]
         try:
-            self.columns = args["columns"].split(",")
+            self.columns = args["param"]["columns"]
         except KeyError as e:
             self.columns = None
         self.param = args["param"]
         print("using PySpark")
-        from pyspark.sql import SparkSession
 
-        self.spark = SparkSession \
-            .builder \
-            .config("spark.sql.warehouse.dir", "hdfs://10.110.18.216/user/hive/warehouse") \
-            .enableHiveSupport() \
-            .getOrCreate()
+        self.spark = utils.init_spark()
+        self.dataUtil = dataUtil(args2)
 
     def getIn(self):
-        self.originalDF = data.SparkReadHive(self.inputUrl1, self.spark)
+        self.originalDF = self.dataUtil.SparkReadHive(self.inputUrl1, self.spark)
 
     def execute(self):
         from pyspark.sql import functions
@@ -193,6 +193,6 @@ class SparkNormalizeData:
 
     def setOut(self):
 
-        data.SparkWriteHive(self.transformedDF, self.outputUrl1)
-        data.SparkWriteHive(self.parameterDF, self.outputUrl2)
+        self.dataUtil.SparkWriteHive(self.transformedDF, self.outputUrl1)
+        self.dataUtil.SparkWriteHive(self.parameterDF, self.outputUrl2)
 

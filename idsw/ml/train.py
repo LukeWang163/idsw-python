@@ -5,11 +5,12 @@
 # @File    : idsw.ml.train.py
 # @Desc    : Scripts for initializing binary classification models. 机器学习->模型训练
 
-from ..data import data
+from ..data.data import dataUtil
+from .. import utils
 
 
 class PyTrainModel:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
         Standalone and Spark version for training model
         @param args: dict
@@ -18,11 +19,12 @@ class PyTrainModel:
         """
         self.originalDF = None
         self.inputUrl1 = args["input"][0]["value"]
-        self.inputUrl2 = args["input"][0]["value"]
+        self.inputUrl2 = args["input"][1]["value"]
         self.outputUrl1 = args["output"][0]["value"]
         self.param = args["param"]
         self.model = None
         self.pipelinemodel = None
+        self.dataUtil = dataUtil(args2)
 
     def getIn(self):
         if self.inputUrl1.endswith(".pkl"):
@@ -30,26 +32,21 @@ class PyTrainModel:
             print("using scikit-learn")
 
             from sklearn.externals import joblib
-            self.originalDF = data.PyReadCSV(self.inputUrl2)
-            # self.originalDF = data.PyReadHive(self.inputUrl2)
+            # self.originalDF = data.PyReadCSV(self.inputUrl2)
+            self.originalDF = self.dataUtil.PyReadHive(self.inputUrl2)
             self.model = joblib.load(self.inputUrl1)
         else:
             # 训练Spark等模型
             print("using PySpark")
-            from pyspark.sql import SparkSession
             from pyspark.ml import Pipeline
 
-            self.spark = SparkSession \
-                .builder \
-                .config("spark.sql.warehouse.dir", "hdfs://10.110.18.216/user/hive/warehouse") \
-                .enableHiveSupport() \
-                .getOrCreate()
-            self.originalDF = data.SparkReadHive(self.inputUrl2, self.spark)
+            self.spark = utils.init_spark()
+            self.originalDF = self.dataUtil.SparkReadHive(self.inputUrl2, self.spark)
             self.model = Pipeline.load(self.inputUrl1).getStages()[0]
 
     def execute(self):
-        featureCols = self.param["features"].split(",")
-        labelCol = self.param["label"].split(",")[0]
+        featureCols = self.param["features"]
+        labelCol = self.param["label"]
 
         if self.inputUrl1.endswith(".pkl"):
             # 训练sklearn等模型
@@ -62,7 +59,6 @@ class PyTrainModel:
         else:
             # 训练Spark等模型
             print("using PySpark")
-            from pyspark.sql import SparkSession
             from pyspark.ml import Pipeline
             import pyspark.ml.clustering
             from pyspark.ml.feature import VectorAssembler

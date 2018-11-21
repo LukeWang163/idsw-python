@@ -4,7 +4,8 @@
 # @Author  : Luke
 # @File    : idsw.ml.evaluate.py
 # @Desc    : Evaluation scripts for our built models.
-from ..data import data
+from ..data.data import dataUtil
+from .. import utils
 
 
 class PyCrossValidate:
@@ -12,15 +13,15 @@ class PyCrossValidate:
 
 
 class PyEvaluateBinaryClassifier:
-    def __init__(self, args):
+    def __init__(self, args, args2):
         """
         Standalone and Spark version for evaluating binary classifier
         @param args: dict
         featureCols: list
         labelCol: string
         """
-        self.inputUrl1 = args["input1"][0]["value"]
-        self.inputUrl2 = args["input"][0]["value"]
+        self.inputUrl1 = args["input"][0]["value"]
+        self.inputUrl2 = args["input"][1]["value"]
         self.outputUrl1 = args["output"][0]["value"]
         self.param = args["param"]
 
@@ -28,35 +29,32 @@ class PyEvaluateBinaryClassifier:
         self.transformDF = None
         self.result = None
 
+        self.dataUtil = dataUtil(args2)
+
     def getIn(self):
         if self.inputUrl1.endswith(".pkl"):
             # sklearn等模型加载
             print("using scikit-learn")
             import pandas as pd
             from sklearn.externals import joblib
-            # self.originalDF = data.PyReadHive(self.inputUrl2)
-            self.originalDF = data.PyReadCSV(self.inputUrl2)
+            self.originalDF = self.dataUtil.PyReadHive(self.inputUrl2)
+            # self.originalDF = data.PyReadCSV(self.inputUrl2)
 
             self.model = joblib.load(self.inputUrl1)
         else:
             # Spark模型加载
             print("using PySpark")
-            from pyspark.sql import SparkSession
             from pyspark.ml import PipelineModel
 
-            self.spark = SparkSession \
-                .builder \
-                .config("spark.sql.warehouse.dir", "hdfs://10.110.18.216/user/hive/warehouse") \
-                .enableHiveSupport() \
-                .getOrCreate()
+            self.spark = utils.init_spark()
 
-            self.originalDF = data.SparkReadHive(self.inputUrl2, self.spark)
+            self.originalDF = self.dataUtil.SparkReadHive(self.inputUrl2, self.spark)
             self.model = PipelineModel.load(self.inputUrl1)
 
     def execute(self):
         from collections import OrderedDict
-        featureCols = self.param["features"].split(",")
-        labelCol = self.param["label"].split(",")[0]
+        featureCols = self.param["features"]
+        labelCol = self.param["label"]
         if self.inputUrl1.endswith(".pkl"):
             # sklearn等模型评估
             import pandas as pd
@@ -109,33 +107,128 @@ class PyEvaluateBinaryClassifier:
 
     def setOut(self):
         if self.inputUrl1.endswith(".pkl"):
-            data.PyWriteCSV(self.result, self.outputUrl1)
-            # data.PyWriteHive(self.result, self.outputUrl1)
+            # data.PyWriteCSV(self.result, self.outputUrl1)
+            self.dataUtil.PyWriteHive(self.result, self.outputUrl1)
 
         else:
-            data.SparkWriteHive(self.result, self.outputUrl1)
+            self.dataUtil.SparkWriteHive(self.result, self.outputUrl1)
 
 
-class PyEvaluateMultiLabelClassifier:
-    pass
-
-
-class PyEvaluateRegressor:
-    def __init__(self, args):
+class PyEvaluateMultiClassClassifier:
+    def __init__(self, args, args2):
         """
-        Standalone and Spark version for evaluating regressor
+        Standalone and Spark version for evaluating multi-class classifier
         @param args: dict
         featureCols: list
         labelCol: string
         """
-        self.inputUrl1 = args["input1"][0]["value"]
-        self.inputUrl2 = args["input"][0]["value"]
+        self.inputUrl1 = args["input"][0]["value"]
+        self.inputUrl2 = args["input"][1]["value"]
         self.outputUrl1 = args["output"][0]["value"]
         self.param = args["param"]
 
         self.originalDF = None
         self.transformDF = None
         self.result = None
+        self.dataUtil = dataUtil(args2)
+
+    def getIn(self):
+        if self.inputUrl1.endswith(".pkl"):
+            # sklearn等模型加载
+            print("using scikit-learn")
+            import pandas as pd
+            from sklearn.externals import joblib
+            self.originalDF = self.dataUtil.PyReadHive(self.inputUrl2)
+            # self.originalDF = data.PyReadCSV(self.inputUrl2)
+
+            self.model = joblib.load(self.inputUrl1)
+        else:
+            # Spark模型加载
+            print("using PySpark")
+            from pyspark.ml import PipelineModel
+
+            self.spark = utils.init_spark()
+
+            self.originalDF = self.dataUtil.SparkReadHive(self.inputUrl2, self.spark)
+            self.model = PipelineModel.load(self.inputUrl1)
+
+    def execute(self):
+        from collections import OrderedDict
+        featureCols = self.param["features"]
+        labelCol = self.param["label"]
+        if self.inputUrl1.endswith(".pkl"):
+            # sklearn等模型评估
+            import pandas as pd
+            from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+            self.transformDF = self.originalDF.copy()
+            predicted = self.model.predict(self.originalDF[featureCols])
+
+            self.transformDF["prediction"] = predicted
+
+            accuracy = accuracy_score(self.originalDF[labelCol], predicted)
+            precision = precision_score(self.originalDF[labelCol], predicted)
+            recall = recall_score(self.originalDF[labelCol], predicted)
+            f1 = f1_score(self.originalDF[labelCol], predicted)
+
+            self.result = pd.DataFrame.from_dict(
+                OrderedDict({"accuracy": [accuracy], "precision": [precision], "recall": [recall], "f1 score": [f1]}))
+
+        else:
+            # Spark等模型评估
+            print("using PySpark")
+            from pyspark.sql.types import StructType, StructField, FloatType
+
+            self.transformDF = self.model.transform(self.originalDF).drop("features")
+            # 与二分类评估不同的是，MulticlassClassificationEvaluator提供了准确率等评价指标的接口
+            from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+            accuracy = MulticlassClassificationEvaluator(labelCol=labelCol, predictionCol="prediction",
+                                                         metricName="accuracy").evaluate(self.transformDF)
+            precision = MulticlassClassificationEvaluator(labelCol=labelCol, predictionCol="prediction",
+                                                          metricName="weightedPrecision").evaluate(self.transformDF)
+            recall = MulticlassClassificationEvaluator(labelCol=labelCol, predictionCol="prediction",
+                                                       metricName="weightedRecall").evaluate(self.transformDF)
+            f1 = MulticlassClassificationEvaluator(labelCol=labelCol, predictionCol="prediction",
+                                                   metricName="f1").evaluate(self.transformDF)
+
+            print("accuracy: %s" % accuracy)
+            print("precision: %s" % precision)
+            print("recall: %s" % recall)
+            print("f1 score: %s" % f1)
+
+            result_struct = StructType(
+                [StructField("accuracy", FloatType(), True), StructField("precision", FloatType(), True),
+                 StructField("recall", FloatType(), True), StructField("f1 score", FloatType(), True)])
+            self.result = self.spark.createDataFrame(
+                self.spark.sparkContext.parallelize([(accuracy, precision, recall, f1)]),
+                result_struct)
+            # output
+
+    def setOut(self):
+        if self.inputUrl1.endswith(".pkl"):
+            # data.PyWriteCSV(self.result, self.outputUrl1)
+            self.dataUtil.PyWriteHive(self.result, self.outputUrl1)
+
+        else:
+            self.dataUtil.SparkWriteHive(self.result, self.outputUrl1)
+
+
+class PyEvaluateRegressor:
+    def __init__(self, args, args2):
+        """
+        Standalone and Spark version for evaluating regressor
+        @param args: dict
+        featureCols: list
+        labelCol: string
+        """
+        self.inputUrl1 = args["input"][0]["value"]
+        self.inputUrl2 = args["input"][1]["value"]
+        self.outputUrl1 = args["output"][0]["value"]
+        self.param = args["param"]
+
+        self.originalDF = None
+        self.transformDF = None
+        self.result = None
+        self.dataUtil = dataUtil(args2)
 
     def getIn(self):
         if self.inputUrl1.endswith(".pkl"):
@@ -148,22 +241,17 @@ class PyEvaluateRegressor:
         else:
             # Spark等模型评估
             print("using PySpark")
-            from pyspark.sql import SparkSession
             from pyspark.ml import PipelineModel
 
-            self.spark = SparkSession \
-                .builder \
-                .config("spark.sql.warehouse.dir", "hdfs://10.110.18.216/user/hive/warehouse") \
-                .enableHiveSupport() \
-                .getOrCreate()
+            self.spark = utils.init_spark()
 
             self.originalDF = self.spark.sql("select * from " + self.inputUrl2)
             self.model = PipelineModel.load(self.inputUrl1)
 
     def execute(self):
         from collections import OrderedDict
-        featureCols = self.param["features"].split(",")
-        labelCol = self.param["label"].split(",")[0]
+        featureCols = self.param["features"]
+        labelCol = self.param["label"]
 
         if self.inputUrl1.endswith(".pkl"):
             import pandas as pd
@@ -183,7 +271,6 @@ class PyEvaluateRegressor:
 
         else:
             print("using PySpark")
-            from pyspark.sql import SparkSession
             from pyspark.ml.evaluation import RegressionEvaluator
             from pyspark.sql.types import StructType, StructField, FloatType
 
@@ -208,10 +295,11 @@ class PyEvaluateRegressor:
 
     def setOut(self):
         if self.inputUrl1.endswith(".pkl"):
-            self.result.to_csv(self.outputUrl1, index=False)
+            # data.PyWriteCSV(self.result, self.outputUrl1)
+            self.dataUtil.PyWriteHive(self.result, self.outputUrl1)
 
         else:
-            self.result.write.mode("overwrite").format("hive").saveAsTable(self.outputUrl1)
+            self.dataUtil.SparkWriteHive(self.result, self.outputUrl1)
 
 
 class PyEvaluateClustering:

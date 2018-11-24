@@ -4,7 +4,6 @@
 # @Author  : Luke
 # @File    : idsw.ml.evaluate.py
 # @Desc    : Evaluation scripts for our built models.
-from ..data.data import dataUtil
 from .. import utils
 
 
@@ -27,9 +26,10 @@ class PyEvaluateBinaryClassifier:
 
         self.originalDF = None
         self.transformDF = None
+        self.model = None
         self.result = None
 
-        self.dataUtil = dataUtil(args2)
+        self.dataUtil = utils.dataUtil(args2)
 
     def getIn(self):
         if self.inputUrl1.endswith(".pkl"):
@@ -48,7 +48,7 @@ class PyEvaluateBinaryClassifier:
 
             self.spark = utils.init_spark()
 
-            self.originalDF = self.dataUtil.SparkReadHive(self.inputUrl2, self.spark)
+            self.originalDF = utils.dataUtil.SparkReadHive(self.inputUrl2, self.spark)
             self.model = PipelineModel.load(self.inputUrl1)
 
     def execute(self):
@@ -111,7 +111,7 @@ class PyEvaluateBinaryClassifier:
             self.dataUtil.PyWriteHive(self.result, self.outputUrl1)
 
         else:
-            self.dataUtil.SparkWriteHive(self.result, self.outputUrl1)
+            utils.dataUtil.SparkWriteHive(self.result, self.outputUrl1)
 
 
 class PyEvaluateMultiClassClassifier:
@@ -129,8 +129,9 @@ class PyEvaluateMultiClassClassifier:
 
         self.originalDF = None
         self.transformDF = None
+        self.model = None
         self.result = None
-        self.dataUtil = dataUtil(args2)
+        self.dataUtil = utils.dataUtil(args2)
 
     def getIn(self):
         if self.inputUrl1.endswith(".pkl"):
@@ -149,7 +150,7 @@ class PyEvaluateMultiClassClassifier:
 
             self.spark = utils.init_spark()
 
-            self.originalDF = self.dataUtil.SparkReadHive(self.inputUrl2, self.spark)
+            self.originalDF = utils.dataUtil.SparkReadHive(self.inputUrl2, self.spark)
             self.model = PipelineModel.load(self.inputUrl1)
 
     def execute(self):
@@ -209,7 +210,7 @@ class PyEvaluateMultiClassClassifier:
             self.dataUtil.PyWriteHive(self.result, self.outputUrl1)
 
         else:
-            self.dataUtil.SparkWriteHive(self.result, self.outputUrl1)
+            utils.dataUtil.SparkWriteHive(self.result, self.outputUrl1)
 
 
 class PyEvaluateRegressor:
@@ -227,8 +228,9 @@ class PyEvaluateRegressor:
 
         self.originalDF = None
         self.transformDF = None
+        self.model = None
         self.result = None
-        self.dataUtil = dataUtil(args2)
+        self.dataUtil = utils.dataUtil(args2)
 
     def getIn(self):
         if self.inputUrl1.endswith(".pkl"):
@@ -236,7 +238,8 @@ class PyEvaluateRegressor:
             print("using scikit-learn")
             import pandas as pd
             from sklearn.externals import joblib
-            self.originalDF = pd.read_csv(self.inputUrl2, encoding="utf-8")
+            self.originalDF = self.dataUtil.PyReadHive(self.inputUrl2)
+            # self.originalDF = utils.dataUtil.PyReadCSV(self.inputUrl2)
             self.model = joblib.load(self.inputUrl1)
         else:
             # Spark等模型评估
@@ -245,7 +248,7 @@ class PyEvaluateRegressor:
 
             self.spark = utils.init_spark()
 
-            self.originalDF = self.spark.sql("select * from " + self.inputUrl2)
+            self.originalDF = utils.dataUtil.SparkReadHive(self.inputUrl2, self.spark)
             self.model = PipelineModel.load(self.inputUrl1)
 
     def execute(self):
@@ -299,7 +302,7 @@ class PyEvaluateRegressor:
             self.dataUtil.PyWriteHive(self.result, self.outputUrl1)
 
         else:
-            self.dataUtil.SparkWriteHive(self.result, self.outputUrl1)
+            utils.dataUtil.SparkWriteHive(self.result, self.outputUrl1)
 
 
 class PyEvaluateClustering:

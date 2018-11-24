@@ -4,8 +4,6 @@
 # @Author  : Luke
 # @File    : idsw.ml.train.py
 # @Desc    : Scripts for initializing binary classification models. 机器学习->模型训练
-
-from ..data.data import dataUtil
 from .. import utils
 
 
@@ -23,8 +21,7 @@ class PyTrainModel:
         self.outputUrl1 = args["output"][0]["value"]
         self.param = args["param"]
         self.model = None
-        self.pipelinemodel = None
-        self.dataUtil = dataUtil(args2)
+        self.dataUtil = utils.dataUtil(args2)
 
     def getIn(self):
         if self.inputUrl1.endswith(".pkl"):

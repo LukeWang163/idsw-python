@@ -4,7 +4,6 @@
 # @Author  : Luke
 # @File    : idsw.preprocessing.normalize.py
 # @Desc    : Scripts for normalizing data in different ways. 数据预处理->数据标准化
-from ..data.data import dataUtil
 from .. import utils
 
 class PyGroupIntoBins:
@@ -33,7 +32,7 @@ class PyNormalizeData:
         except KeyError as e:
             self.columns = None
         self.param = args["param"]
-        self.dataUtil = dataUtil(args2)
+        self.dataUtil = utils.dataUtil(args2)
 
     def getIn(self):
         # self.originalDF = data.PyReadCSV(self.inputUrl1)
@@ -120,10 +119,9 @@ class SparkNormalizeData:
         print("using PySpark")
 
         self.spark = utils.init_spark()
-        self.dataUtil = dataUtil(args2)
 
     def getIn(self):
-        self.originalDF = self.dataUtil.SparkReadHive(self.inputUrl1, self.spark)
+        self.originalDF = utils.dataUtil.SparkReadHive(self.inputUrl1, self.spark)
 
     def execute(self):
         from pyspark.sql import functions
@@ -193,6 +191,6 @@ class SparkNormalizeData:
 
     def setOut(self):
 
-        self.dataUtil.SparkWriteHive(self.transformedDF, self.outputUrl1)
-        self.dataUtil.SparkWriteHive(self.parameterDF, self.outputUrl2)
+        utils.dataUtil.SparkWriteHive(self.transformedDF, self.outputUrl1)
+        utils.dataUtil.SparkWriteHive(self.parameterDF, self.outputUrl2)
 

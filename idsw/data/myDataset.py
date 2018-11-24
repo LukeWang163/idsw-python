@@ -5,11 +5,10 @@
 # @File    : myDataset.py
 # @Desc    : read dataset from HDFS and then write to HIVE
 
-from .data import dataUtil
 from .. import utils
 
 
-class SparkFile2Hive:
+class PyFile2Hive:
     def __init__(self, args, args2):
         """
         Spark version for reading data from HDFS and then write to HIVE
@@ -24,9 +23,36 @@ class SparkFile2Hive:
         self.inputUrl1 = args["param"]["path"]
         self.DF = None
 
+        self.dataUtil = utils.dataUtil(args2)
+
+    def getIn(self):
+        if self.type == "csv":
+            self.DF = self.dataUtil.PyReadCSV(self.inputUrl1)
+
+    def execute(self):
+        return
+
+    def setOut(self):
+        self.dataUtil.PyWriteHive(self.DF, self.outputUrl1)
+
+
+class SparkFile2Hive:
+    def __init__(self, args, args2):
+        """
+        Spark version for reading data from HDFS and then write to HIVE
+        @param args: dict
+        inputUrl: String
+        outputUrl: String
+        """
+        self.outputUrl1 = args["output"][0]["value"]
+
+        self.type = args["param"]["type"]
+        self.inputUrl1 = args["param"]["path"]
+        self.DF = None
+
         self.spark = utils.init_spark()
 
-        self.dataUtil = dataUtil(args2)
+        self.dataUtil = utils.dataUtil(args2)
 
     def getIn(self):
         if self.type == "csv":

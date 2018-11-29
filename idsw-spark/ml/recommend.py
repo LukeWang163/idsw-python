@@ -8,11 +8,3 @@
 
 class Aprior:
     pass
-
-
-class FPGrowth:
-    pass
-
-
-class ALS:
-    pass

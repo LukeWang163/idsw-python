@@ -4,17 +4,22 @@
 # @Author  : Luke
 # @File    : idsw.ml.train.py
 # @Desc    : Scripts for initializing binary classification models. 机器学习->模型训练
-from .. import utils
+import utils
+import logging
+import logging.config
+logging.config.fileConfig('logging.ini')
 
 
-class PyTrainModel:
+class TrainModel:
     def __init__(self, args, args2):
         """
-        Standalone and Spark version for training model
+        Standalone version for training model
         @param args: dict
         featureCols: list
         labelCol: String
         """
+        self.logger = logging.getLogger(self.__class__.__name__)
+
         self.originalDF = None
         self.inputUrl1 = args["input"][0]["value"]
         self.inputUrl2 = args["input"][1]["value"]
@@ -24,60 +29,70 @@ class PyTrainModel:
         self.dataUtil = utils.dataUtil(args2)
 
     def getIn(self):
-        if self.inputUrl1.endswith(".pkl"):
-            # 训练sklearn等模型
-            print("using scikit-learn")
-
-            from sklearn.externals import joblib
-            # self.originalDF = data.PyReadCSV(self.inputUrl2)
-            self.originalDF = self.dataUtil.PyReadHive(self.inputUrl2)
-            self.model = joblib.load(self.inputUrl1)
-        else:
-            # 训练Spark等模型
-            print("using PySpark")
-            from pyspark.ml import Pipeline
-
-            self.spark = utils.init_spark()
-            self.originalDF = self.dataUtil.SparkReadHive(self.inputUrl2, self.spark)
-            self.model = Pipeline.load(self.inputUrl1).getStages()[0]
+        # 训练sklearn等模型
+        self.logger.debug("using standalone model")
+        # self.originalDF = data.PyReadCSV(self.inputUrl2)
+        self.originalDF = self.dataUtil.PyReadHive(self.inputUrl2)
+        self.model = self.dataUtil.PyReadModel(self.inputUrl1)
 
     def execute(self):
         featureCols = self.param["features"]
         labelCol = self.param["label"]
 
-        if self.inputUrl1.endswith(".pkl"):
-            # 训练sklearn等模型
-            import sklearn.cluster
-            if (not isinstance(self.model, sklearn.cluster.k_means_.KMeans)) & (
-                    not isinstance(self.model, sklearn.cluster.dbscan_.DBSCAN)):
-                self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
-            else:
-                self.model.fit(self.originalDF[featureCols])
-        else:
-            # 训练Spark等模型
-            print("using PySpark")
-            from pyspark.ml import Pipeline
-            import pyspark.ml.clustering
-            from pyspark.ml.feature import VectorAssembler
-            if not isinstance(self.model, pyspark.ml.clustering.KMeans):
-                # 使用VectorAssembler将特征列聚合成一个DenseVector
-                vectorAssembler = VectorAssembler(inputCols=featureCols, outputCol="features")
-                self.model.setParams(featuresCol="features", labelCol=labelCol)
-                pipeline = Pipeline(stages=[vectorAssembler, self.model])
-                self.pipelinemodel = pipeline.fit(self.originalDF)
+        # 训练sklearn等模型
+        import sklearn.cluster
+
+        if (not isinstance(self.model, sklearn.cluster.k_means_.KMeans)) & (
+                not isinstance(self.model, sklearn.cluster.dbscan_.DBSCAN)):
+            self.logger.info("Training model")
+            self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
 
     def setOut(self):
-        if self.inputUrl1.endswith(".pkl"):
-            from sklearn.externals import joblib
-            joblib.dump(self.model, self.outputUrl1, compress=True)
-
-        else:
-            self.pipelinemodel.write().overwrite().save(self.outputUrl1)
+        self.logger.info("saving trained standalone model to %s" % self.outputUrl1)
+        self.dataUtil.PyWriteModel(self.model, self.outputUrl1)
 
 
-class PyTrainClustering:
-    pass
+class TrainClustering:
+    def __init__(self, args, args2):
+        """
+        Standalone version for training clustering model
+        @param args: dict
+        featureCols: list
+        """
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+        self.originalDF = None
+        self.transformDF = None
+        self.inputUrl1 = args["input"][0]["value"]
+        self.inputUrl2 = args["input"][1]["value"]
+        self.outputUrl1 = args["output"][0]["value"]
+        self.outputUrl2 = args["output"][1]["value"]
+        self.param = args["param"]
+        self.model = None
+        self.dataUtil = utils.dataUtil(args2)
+
+    def getIn(self):
+        # 训练sklearn等模型
+        self.logger.debug("using scikit-learn")
+
+        # self.originalDF = data.PyReadCSV(self.inputUrl2)
+        self.originalDF = self.dataUtil.PyReadHive(self.inputUrl2)
+        self.transformDF = self.originalDF.copy()
+        self.model = self.dataUtil.PyReadModel(self.inputUrl1)
+
+    def execute(self):
+        featureCols = self.param["features"]
+
+        # 训练sklearn等模型
+        self.logger.info("training standalone clustering model")
+        self.model.fit(self.originalDF[featureCols])
+        self.transformDF["prediction"] = self.model.labels_
+
+    def setOut(self):
+        self.logger.info("saving trained standalone clustering model to %s" % self.outputUrl1)
+        self.dataUtil.PyWriteModel(self.model, self.outputUrl1)
+        self.dataUtil.PyWriteHive(self.transformDF, self.outputUrl2)
 
 
-class PyTuneHyperparameter:
+class TuneHyperparameter:
     pass

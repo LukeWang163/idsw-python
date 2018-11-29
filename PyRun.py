@@ -12,10 +12,10 @@ if __name__ == "__main__":
     if cmd_folder not in sys.path:
         sys.path.insert(0, cmd_folder)
 
-    def _parse_args(str):
-        pad = len(str) % 4
-        str += "=" * pad
-        return base64.b64decode(str)
+    def _parse_args(b64str):
+        pad = len(b64str) % 4
+        b64str += "=" * pad
+        return base64.b64decode(b64str)
 
     args = json.loads(_parse_args(sys.argv[1]))
     args2 = json.loads(_parse_args(sys.argv[2]))
@@ -24,20 +24,35 @@ if __name__ == "__main__":
     className = args["class"].split(".")[-1]
     moduleName = ".".join(args["class"].split(".")[:-1])
     # get pointers to the objects based on the string names
-    type = args["classType"]
+    classType = args["classType"]
+    # get ML model type
+    modelType = args["input"][0]["value"] if args["input"][0]["type"] == "model" else None
+    chosenClass = None
 
-    if type == "Py.Distributed":
-        chosenClass = getattr(importlib.import_module("idsw." + moduleName), "Spark" + className)
-    elif type == "Py.Standalone":
-        chosenClass = getattr(importlib.import_module("idsw."+moduleName), "Py"+className)
-    elif type.startswith("Py"):
-        chosenClass = getattr(importlib.import_module("idsw." + moduleName), "Py" + className)
+    if classType == "Py.Distributed":
+        chosenClass = getattr(importlib.import_module("idsw-spark." + moduleName), className)
+    elif classType == "Py.Standalone":
+        chosenClass = getattr(importlib.import_module("idsw."+moduleName), className)
+    elif classType.startswith("Py"):
+        # 对于不指定单机或分布式的机器学习组件，若输入参数含有机器学习模型，判断为单机模型还是分布式模型，分别处理
+        if modelType is not None:
+            if modelType.endswith(".pkl"):
+                chosenClass = getattr(importlib.import_module("idsw." + moduleName), className)
+            else:
+                chosenClass = getattr(importlib.import_module("idsw-spark." + moduleName), className)
+        # 如果没有涉及机器学习模型，则认为默认使用单机模块
+        else:
+            chosenClass = getattr(importlib.import_module("idsw." + moduleName), className)
+
     # initialize processing class
     currentClass = chosenClass(args, args2)
     logger = logging.getLogger(currentClass.__class__.__name__)
+    # get input
     currentClass.getIn()
-    logger.info("%s initialization succeeded!" %(moduleName + "." + className))
+    logger.info("%s initialization succeeded!" % (moduleName + "." + className))
+    # execute
     currentClass.execute()
     logger.info("%s execution succeeded!" % (moduleName + "." + className))
+    # write output
     currentClass.setOut()
     logger.info("%s all succeeded!" % (moduleName + "." + className))

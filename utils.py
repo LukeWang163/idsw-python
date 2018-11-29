@@ -5,21 +5,9 @@
 # @File    : idsw.utils.py
 # @Desc    : Utils for idsw modules, including establishing Hive connection, map dataframe dtyps to hive dtypes, etc.
 from pyhive import hive
-import json
 import logging
-
-
-def _get_username_and_password(args):
-    """
-    Parse hive-site.xml, then get username and password
-    @return: list
-    """
-    args = json.loads(args.replace("\!", "!"))
-    return [args["username"], args["password"]]
-    #root = ET.parse(os.getenv("HIVE_HOME") + "/conf/hive-site.xml").getroot()
-    #return [[i[1].text for i in root.iter(tag="property") if i[0].text == "javax.jdo.option.ConnectionUserName"][0],
-    #        [i[1].text for i in root.iter(tag="property") if i[0].text == "javax.jdo.option.ConnectionPassword"][0]]
-
+import logging.config
+logging.config.fileConfig('logging.ini')
 
 def mapping_df_types(df):
     """
@@ -28,32 +16,35 @@ def mapping_df_types(df):
     @return: dict
     """
     from collections import OrderedDict
-    dtypedict = OrderedDict()
+    dtypeDict = OrderedDict()
     for i, j in zip(df.columns, df.dtypes):
         if "object" in str(j):
-            dtypedict.update({i: "STRING"})
+            dtypeDict.update({i: "STRING"})
         if "float" in str(j):
-            dtypedict.update({i: "FLOAT"})
+            dtypeDict.update({i: "FLOAT"})
         if "int" in str(j):
-            dtypedict.update({i: "BIGINT"})
+            dtypeDict.update({i: "BIGINT"})
         if "datetime" in str(j):
-            dtypedict.update({i: "TIMESTAMP"})
+            dtypeDict.update({i: "TIMESTAMP"})
         if "bool" in str(j):
-            dtypedict.update({i: "BOOLEAN"})
-    return dtypedict
+            dtypeDict.update({i: "BOOLEAN"})
+    return dtypeDict
 
 
 def init_spark():
     from pyspark.sql import SparkSession
-    return SparkSession \
+    spark = SparkSession \
         .builder \
         .master("yarn") \
         .enableHiveSupport() \
         .getOrCreate()
+    spark.sparkContext.setLogLevel('ERROR')
+    return spark
 
 
 class dataUtil:
     def __init__(self, args):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.hive_user = args["hive.username"]
         self.hive_passwd = args["hive.password"]
         self.hdfs_url = args["hdfs.url"]
@@ -70,15 +61,8 @@ class dataUtil:
                                auth='CUSTOM', configuration={"hive.resultset.use.unique.column.names": "false"})
         return conn
 
-    def _get_cursor(self):
-        """
-        Get cursor with Hive
-        @return: pyhive.Connection.cursor
-        """
-        return self._get_HIVE_connection().cursor()
-
     def _get_HDFS_connection(self):
-        import pyarrow as pa
+        from hdfs3 import HDFileSystem
         # import subprocess
         from urllib.parse import urlsplit
         # import xml.etree.ElementTree as ET
@@ -87,7 +71,7 @@ class dataUtil:
         # root = ET.parse(os.getenv("HADOOP_HOME") + "/etc/hadoop/core-site.xml").getroot()
         # url = [i[1].text for i in root.iter(tag="property") if i[0].text == "fs.defaultFS"][0]
         arr = urlsplit(self.hdfs_url).netloc.split(":")
-        return pa.hdfs.connect(host=arr[0], port=int(arr[1]), user=self.hdfs_user)
+        return HDFileSystem(host=arr[0], port=int(arr[1]))# , user=self.hdfs_user)
 
     def PyReadParquet(self, inputUrl):
         """
@@ -100,6 +84,19 @@ class dataUtil:
         with hdfs.open(inputUrl) as reader:
             df = pd.read_parquet(reader)
         return df
+
+    def PyWriteModel(self, model, outputUrl):
+        from sklearn.externals import joblib
+        hdfs = self._get_HDFS_connection()
+        with hdfs.open(outputUrl, "wb") as writer:
+            joblib.dump(model, writer, compress=True)
+
+    def PyReadModel(self, inputUrl):
+        from sklearn.externals import joblib
+        hdfs = self._get_HDFS_connection()
+        with hdfs.open(inputUrl) as reader:
+            model = joblib.load(reader)
+        return model
 
     def PyWriteParquet(self, df, outputUrl):
         """
@@ -122,7 +119,9 @@ class dataUtil:
         """
         import pandas as pd
         conn = self._get_HIVE_connection()
-        return pd.read_sql("select * from %s" % inputUrl, conn)
+        df = pd.read_sql("select * from %s" % inputUrl, conn)
+        conn.close()
+        return df
 
     def PyWriteHive(self, df, outputUrl):
         """
@@ -136,7 +135,8 @@ class dataUtil:
         dtypeDict = mapping_df_types(df)
         dtypeString = ",".join("`{}` {}".format(*i) for i in dtypeDict.items())
         # 获得Hive连接
-        cursor = self._get_cursor()
+        conn = self._get_HIVE_connection()
+        cursor = conn.cursor()
         # 建表
         cursor.execute("drop table if exists %s" % outputUrl)
         cursor.execute("create table %s (%s) row format delimited fields terminated by '\t'" % (outputUrl, dtypeString))
@@ -146,7 +146,9 @@ class dataUtil:
         cursor.execute("load data local inpath '%s' overwrite into table %s" % ("/tmp/" + outputUrl + ".txt", outputUrl))
         # 删除本地临时txt文件
         os.remove("/tmp/" + outputUrl + ".txt")
-        print("writen to Hive")
+        cursor.close()
+        conn.close()
+        self.logger.info("writen to Hive")
         return
 
     def PyReadCSV(self, inputUrl):

@@ -2,30 +2,21 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2018/11/19
 # @Author  : Luke
-# @File    : idsw.ml.binary.py
-# @Desc    : Scripts for initializing binary classification models. 机器学习->模型初始化->二分类
+# @File    : idsw.ml.regression.py
+# @Desc    : Scripts for initializing regression models. 机器学习->模型初始化->回归
+import utils
 import logging
 import logging.config
-import utils
-
 logging.config.fileConfig('logging.ini')
-
-
-class SVM:
-    pass
-
-
-class DecisionTree:
-    pass
 
 
 class RandomForest:
     def __init__(self, args, args2):
         """
-        Standalone version for initializing RandomForest binary classifier
+        Spark version for initializing RandomForest regressor
         @param args: dict
         n_estimators: int
-        criterion: string one of "gini" and "entropy"
+        criterion: string one of "mse" and "mae"
         max_depth: int
         min_samples_split: int
         min_samples_leaf: int
@@ -35,13 +26,16 @@ class RandomForest:
         self.param = args["param"]
         self.model = None
 
-        self.dataUtil = utils.dataUtil(args2)
+        self.logger.info("initializing SparkSession")
+        self.spark = utils.init_spark()
 
     def getIn(self):
         return
 
     def execute(self):
-        self.logger.info("using scikit-learn")
+        from pyspark.ml.regression import RandomForestRegressor
+        from pyspark.ml import Pipeline
+
         # 树的个数
         n_estimators = int(self.param["treeNum"])
         # 评价标准
@@ -53,40 +47,13 @@ class RandomForest:
         # 叶子节点最小样本数
         min_samples_leaf = int(self.param["minSamplesLeaf"])
 
-        # 初始化模型
+        # 以Pipeline的模式初始化模型，方便统一接口加载模型
         self.logger.info("initializing model")
-        from sklearn.ensemble import RandomForestClassifier
-        self.model = RandomForestClassifier(n_estimators=n_estimators, criterion=criterion, max_depth=max_depth,
-                                            min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf)
+        self.model = Pipeline(stages=[
+            RandomForestRegressor(numTrees=n_estimators, impurity="variance",
+                                   maxDepth=max_depth,
+                                   minInstancesPerNode=min_samples_leaf)])
 
     def setOut(self):
-        self.logger.info("saving initialized model to %s" % self.outputUrl1)
-        self.dataUtil.PyWriteModel(self.model, self.outputUrl1)
-
-
-class GBDT:
-    pass
-
-
-class LogisticRegression:
-    pass
-
-
-class NaiveBayes:
-    pass
-
-
-class BayesNetwork:
-    pass
-
-
-class AveragedPerceptron:
-    pass
-
-
-class MLP:
-    pass
-
-
-class AutoML:
-    pass
+        self.logger.info("saving model to %s" % self.outputUrl1)
+        self.model.write().overwrite().save(self.outputUrl1)

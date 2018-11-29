@@ -3,9 +3,11 @@
 # @Time    : 2018/11/19
 # @Author  : Luke
 # @File    : idsw.ml.regression.py
-# @Desc    : Scripts for initializing regression models. 机器学习->模型初始化->回归
-
-from .. import utils
+# @Desc    : Scripts for initializing regression models. 机器学习->算法选择->回归
+import utils
+import logging
+import logging.config
+logging.config.fileConfig('logging.ini')
 
 
 class PyLinearRegression:
@@ -31,15 +33,18 @@ class PyRandomForest:
         min_samples_split: int
         min_samples_leaf: int
         """
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.outputUrl1 = args["output"][0]["value"]
         self.param = args["param"]
         self.model = None
+
+        self.dataUtil = utils.dataUtil(args2)
 
     def getIn(self):
         return
 
     def execute(self):
-        print("using scikit-learn")
+        self.logger.debug("using scikit-learn")
         # 树的个数
         n_estimators = int(self.param["treeNum"])
         # 评价标准
@@ -52,13 +57,14 @@ class PyRandomForest:
         min_samples_leaf = int(self.param["minSamplesLeaf"])
 
         # 初始化模型
+        self.logger.info("initializing model")
         from sklearn.ensemble import RandomForestRegressor
         self.model = RandomForestRegressor(n_estimators=n_estimators, criterion=criterion, max_depth=max_depth,
                                             min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf)
 
     def setOut(self):
-        from sklearn.externals import joblib
-        joblib.dump(self.model, self.outputUrl1, compress=True)
+        self.logger.info("saving model to %s" % self.outputUrl1)
+        self.dataUtil.PyWriteModel(self.model, self.outputUrl1)
 
 
 class PyPossionRegression:
@@ -88,12 +94,12 @@ class SparkRandomForest:
         min_samples_split: int
         min_samples_leaf: int
         """
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.outputUrl1 = args["output"][0]["value"]
         self.param = args["param"]
         self.model = None
 
-        print("using PySpark")
-
+        self.logger.info("initializing SparkSession")
         self.spark = utils.init_spark()
 
     def getIn(self):
@@ -115,10 +121,12 @@ class SparkRandomForest:
         min_samples_leaf = int(self.param["minSamplesLeaf"])
 
         # 以Pipeline的模式初始化模型，方便统一接口加载模型
+        self.logger.info("initializing model")
         self.model = Pipeline(stages=[
             RandomForestRegressor(numTrees=n_estimators, impurity="variance",
                                    maxDepth=max_depth,
                                    minInstancesPerNode=min_samples_leaf)])
 
     def setOut(self):
+        self.logger.info("saving model to %s" % self.outputUrl1)
         self.model.write().overwrite().save(self.outputUrl1)

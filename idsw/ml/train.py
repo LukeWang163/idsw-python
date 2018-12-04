@@ -41,11 +41,34 @@ class TrainModel:
 
         # 训练sklearn等模型
         import sklearn.cluster
-
         if (not isinstance(self.model, sklearn.cluster.k_means_.KMeans)) & (
                 not isinstance(self.model, sklearn.cluster.dbscan_.DBSCAN)):
-            self.logger.info("Training model")
-            self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
+
+            if "binary" in self.inputUrl1:
+                self.logger.info("training binary classification model")
+                if len(self.originalDF[labelCol].unique()) != 2:
+                    self.logger.error("training data has more than 2 classes. Exiting...")
+                    import sys
+                    sys.exit(0)
+                else:
+                    self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
+
+            elif "multi" in self.inputUrl1:
+                self.logger.info("training multi-class classification model")
+                self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
+
+            elif "reg" in self.inputUrl1:
+                self.logger.info("training regression model")
+                self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
+
+            else:
+                self.logger.error("not supported")
+                import sys
+                sys.exit(0)
+        else:
+            self.logger.error("not supported")
+            import sys
+            sys.exit(0)
 
     def setOut(self):
         self.logger.info("saving trained standalone model to %s" % self.outputUrl1)
@@ -72,7 +95,7 @@ class TrainClustering:
         self.dataUtil = utils.dataUtil(args2)
 
     def getIn(self):
-        # 训练sklearn等模型
+        # 训练sklearn等聚类模型
         self.logger.debug("using scikit-learn")
 
         # self.originalDF = data.PyReadCSV(self.inputUrl2)
@@ -83,10 +106,11 @@ class TrainClustering:
     def execute(self):
         featureCols = self.param["features"]
 
-        # 训练sklearn等模型
-        self.logger.info("training standalone clustering model")
-        self.model.fit(self.originalDF[featureCols])
-        self.transformDF["prediction"] = self.model.labels_
+        # 训练sklearn等聚类模型
+        if "cluster" in self.inputUrl1:
+            self.logger.info("training clustering model")
+            self.model.fit(self.originalDF[featureCols])
+            self.transformDF["prediction"] = self.model.labels_
 
     def setOut(self):
         self.logger.info("saving trained standalone clustering model to %s" % self.outputUrl1)

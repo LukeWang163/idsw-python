@@ -4,10 +4,10 @@
 # @Author  : Luke
 # @File    : idsw.utils.py
 # @Desc    : Utils for idsw modules, including establishing Hive connection, map dataframe dtyps to hive dtypes, etc.
-from pyhive import hive
 import logging
 import logging.config
 logging.config.fileConfig('logging.ini')
+
 
 def mapping_df_types(df):
     """
@@ -55,6 +55,7 @@ class dataUtil:
         Get connection with Hive
         @return: pyhive.Connection
         """
+        from pyhive import hive
         conn = hive.Connection(host='127.0.0.1', port='10000',
                                username=self.hive_user,
                                password=self.hive_passwd,

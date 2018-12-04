@@ -5,6 +5,9 @@
 # @File    : idsw.preprocessing.filter.py
 # @Desc    : Scripts for building filters. 数据预处理->过滤
 import utils
+import logging
+import logging.config
+logging.config.fileConfig('logging.ini')
 
 
 class FIRFilter:

@@ -5,6 +5,9 @@
 # @File    : idsw.featuring.transform.py
 # @Desc    : Scripts for feature transformation. 特征工程->特征变换
 import utils
+import logging
+import logging.config
+logging.config.fileConfig('logging.ini')
 
 
 class PCA:
@@ -17,6 +20,7 @@ class PCA:
         columns: list
         k: int
         """
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.originalDF = None
         self.transformDF = None
         self.pipelineModel = None
@@ -27,6 +31,7 @@ class PCA:
         self.columns = args["param"]["columns"]
         self.k = args["param"]["k"]
 
+        self.logger.info("initializing SparkSession")
         self.spark = utils.init_spark()
 
     def getIn(self):

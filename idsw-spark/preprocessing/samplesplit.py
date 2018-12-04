@@ -5,6 +5,9 @@
 # @File    : idsw.preprocessing.samplesplit.py
 # @Desc    : Scripts for sampling and spliting. 数据预处理->采样/过滤
 import utils
+import logging
+import logging.config
+logging.config.fileConfig('logging.ini')
 
 
 class SampleData:
@@ -22,6 +25,7 @@ class SplitData:
          thresholdColumn: stirng
          threshold: double
          """
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.originalDF = None
         self.DF1 = None
         self.DF2 = None
@@ -32,14 +36,13 @@ class SplitData:
 
         self.param = args["param"]
 
-        print("using PySpark")
+        self.logger.info("initializing SparkSession")
 
         self.spark = utils.init_spark()
-        self.dataUtil = utils.dataUtil(args2)
 
     def getIn(self):
 
-        self.originalDF = self.dataUtil.SparkReadHive(self.inputUrl1, self.spark)
+        self.originalDF = utils.dataUtil.SparkReadHive(self.inputUrl1, self.spark)
 
     def execute(self):
 
@@ -57,8 +60,9 @@ class SplitData:
 
         mode = self.param["splitBy"]
         modes = {"byRatio": splitByRatio, "byThreshold": splitByThreshold}
+        self.logger.info("doing %s" % mode)
         modes[mode]()
 
     def setOut(self):
-        self.dataUtil.SparkWriteHive(self.DF1, self.outputUrl1)
-        self.dataUtil.SparkWriteHive(self.DF2, self.outputUrl2)
+        utils.dataUtil.SparkWriteHive(self.DF1, self.outputUrl1)
+        utils.dataUtil.SparkWriteHive(self.DF2, self.outputUrl2)

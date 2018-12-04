@@ -5,6 +5,7 @@ import os
 import json
 import base64
 import logging
+import utils
 
 
 if __name__ == "__main__":
@@ -26,7 +27,7 @@ if __name__ == "__main__":
     # get pointers to the objects based on the string names
     classType = args["classType"]
     # get ML model type
-    modelType = args["input"][0]["value"] if args["input"][0]["type"] == "model" else None
+    modelPath = args["input"][0]["value"] if args["input"][0]["type"] == "model" else None
     chosenClass = None
 
     if classType == "Py.Distributed":
@@ -35,11 +36,16 @@ if __name__ == "__main__":
         chosenClass = getattr(importlib.import_module("idsw."+moduleName), className)
     elif classType.startswith("Py"):
         # 对于不指定单机或分布式的机器学习组件，若输入参数含有机器学习模型，判断为单机模型还是分布式模型，分别处理
-        if modelType is not None:
-            if modelType.endswith(".pkl"):
-                chosenClass = getattr(importlib.import_module("idsw." + moduleName), className)
-            else:
-                chosenClass = getattr(importlib.import_module("idsw-spark." + moduleName), className)
+        if modelPath is not None:
+            from sklearn.externals import joblib
+            try:
+                hdfs = utils.dataUtil(args2)._get_HDFS_connection()
+                with hdfs.open(modelPath) as reader:
+                    joblib.load(reader)
+                    chosenClass = getattr(importlib.import_module("idsw." + moduleName), className)
+            except OSError as e:
+                if str(e) == "":
+                    chosenClass = getattr(importlib.import_module("idsw-spark." + moduleName), className)
         # 如果没有涉及机器学习模型，则认为默认使用单机模块
         else:
             chosenClass = getattr(importlib.import_module("idsw." + moduleName), className)

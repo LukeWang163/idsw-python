@@ -5,6 +5,9 @@
 # @File    : idsw.preprocessing.normalize.py
 # @Desc    : Scripts for normalizing data in different ways. 数据预处理->数据标准化
 import utils
+import logging
+import logging.config
+logging.config.fileConfig('logging.ini')
 
 
 class GroupIntoBins:
@@ -18,6 +21,7 @@ class NormalizeData:
         @param args: dict
         columns: list
         """
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.originalDF = None
         self.transformedDF = None
         self.parameterDF = None
@@ -33,7 +37,7 @@ class NormalizeData:
         except KeyError as e:
             self.columns = None
         self.param = args["param"]
-        print("using PySpark")
+        self.logger.info("initializing SparkSession")
 
         self.spark = utils.init_spark()
 
@@ -44,6 +48,7 @@ class NormalizeData:
         from pyspark.sql import functions
 
         def minMax():
+            self.logger.info("conducting Min-Max Scaling")
             if (self.parameterDF is None) & (self.columns is not None):
                 # 没有提供参数表，执行fit_transform操作
                 mmParamList = []
@@ -73,6 +78,7 @@ class NormalizeData:
                         .withColumnRenamed(col + "mm", col)
 
         def standard():
+            self.logger.info("conducting Standard Scaling")
             if (self.parameterDF is None) & (self.columns is not None):
                 # 没有提供参数表，执行fit_transform操作
                 mmParamList = []
@@ -83,7 +89,7 @@ class NormalizeData:
                     mmStd = mmRow["stddev_samp(" + col + ")"]
                     mmParamList.append([col, float(mmAvg), float(mmStd)])
                     self.transformedDF = self.transformedDF\
-                        .withColumn(col + "ss",(functions.col(col) - mmAvg) / mmStd) \
+                        .withColumn(col + "ss", (functions.col(col) - mmAvg) / mmStd) \
                         .drop(col)\
                         .withColumnRenamed(col + "ss", col)
 

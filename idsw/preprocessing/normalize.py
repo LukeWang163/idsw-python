@@ -5,6 +5,9 @@
 # @File    : idsw.preprocessing.normalize.py
 # @Desc    : Scripts for normalizing data in different ways. 数据预处理->数据标准化
 import utils
+import logging
+import logging.config
+logging.config.fileConfig("logging.ini")
 
 
 class GroupIntoBins:
@@ -18,6 +21,7 @@ class NormalizeData:
         @param args: dict
         columns: list
         """
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.originalDF = None
         self.transformedDF = None
         self.parameterDF = None
@@ -39,7 +43,7 @@ class NormalizeData:
         # self.originalDF = data.PyReadCSV(self.inputUrl1)
         self.originalDF = self.dataUtil.PyReadHive(self.inputUrl1)
         if self.outputUrl2 == "":
-            print("will execute fit_transform")
+            self.logger.info("will execute fit_transform")
         else:
             # self.parameterDF = data.PyReadCSV(self.inputUrl2)
             self.parameterDF = self.dataUtil.PyReadHive(self.inputUrl2)
@@ -48,6 +52,7 @@ class NormalizeData:
         import pandas as pd
 
         def minMax():
+            self.logger.info("conducting Min-Max Scaling")
             if (self.parameterDF is None) & (self.columns is not None):
                 # 没有提供参数表，执行fit_transform操作
                 from sklearn.preprocessing import MinMaxScaler
@@ -64,6 +69,7 @@ class NormalizeData:
                     self.transformedDF[col] = (self.transformedDF[col] - p_min) / (p_max - p_min)
 
         def standard():
+            self.logger.info("conducting Standard Scaling")
             if (self.parameterDF is None) & (self.columns is not None):
                 # 没有提供参数表，执行fit_transform操作
                 from sklearn.preprocessing import StandardScaler

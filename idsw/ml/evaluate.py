@@ -47,9 +47,12 @@ class EvaluateBinaryClassifier:
         from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, log_loss, confusion_matrix
 
         accuracy = accuracy_score(self.originalDF[self.labelCol], self.originalDF["prediction"])
-        precision = precision_score(self.originalDF[self.labelCol], self.originalDF["prediction"], pos_label=self.posLabel)
-        recall = recall_score(self.originalDF[self.labelCol], self.originalDF["prediction"], pos_label=self.posLabel)
-        f1 = f1_score(self.originalDF[self.labelCol], self.originalDF["prediction"], pos_label=self.posLabel)
+        precision = precision_score(self.originalDF[self.labelCol], self.originalDF["prediction"],
+                                    pos_label=self.posLabel)
+        recall = recall_score(self.originalDF[self.labelCol], self.originalDF["prediction"],
+                              pos_label=self.posLabel)
+        f1 = f1_score(self.originalDF[self.labelCol], self.originalDF["prediction"],
+                      pos_label=self.posLabel)
         auc = roc_auc_score(self.originalDF[self.labelCol].apply(lambda x: 1 if str(x) == str(self.posLabel) else 0),
                             self.originalDF[f'predicted as {str(self.posLabel)}'])
         logloss = log_loss(self.originalDF[self.labelCol], self.originalDF[f'predicted as {str(self.posLabel)}'])

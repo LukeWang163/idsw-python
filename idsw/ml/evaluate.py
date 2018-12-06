@@ -6,8 +6,6 @@
 # @Desc    : Evaluation scripts for our built models. 机器学习->评估
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class CrossValidate:
@@ -54,19 +52,19 @@ class EvaluateBinaryClassifier:
         f1 = f1_score(self.originalDF[self.labelCol], self.originalDF["prediction"],
                       pos_label=self.posLabel)
         auc = roc_auc_score(self.originalDF[self.labelCol].apply(lambda x: 1 if str(x) == str(self.posLabel) else 0),
-                            self.originalDF[f'predicted as {str(self.posLabel)}'])
-        logloss = log_loss(self.originalDF[self.labelCol], self.originalDF[f'predicted as {str(self.posLabel)}'])
+                            self.originalDF["predicted as '%s'" % (str(self.posLabel))])
+        logloss = log_loss(self.originalDF[self.labelCol], self.originalDF["predicted as '%s'" % (str(self.posLabel))])
 
         metric_dict = {"accuracy": accuracy, "recall": recall, "precision": precision, "f1 score": f1, "auc": auc,
                        "logloss": logloss}
         cm_dict = dict(
-            zip(["TN", "FP", "FN", "TP"], confusion_matrix(self.originalDF[self.labelCol], self.originalDF["prediction"].ravel())))
+            zip(["TN", "FP", "FN", "TP"], confusion_matrix(self.originalDF[self.labelCol], self.originalDF["prediction"]).ravel()))
         metric_dict.update(cm_dict)
 
         self.metric_df = pd.DataFrame(metric_dict, index=[0])
 
         # ROC、PR表
-        T = self.originalDF[f'predicted as {str(self.posLabel)}']
+        T = self.originalDF["predicted as '%s'" % (str(self.posLabel))]
         Y = self.originalDF[self.labelCol].apply(lambda x: 1 if str(x) == str(self.posLabel) else 0)
         thresholds = np.linspace(1, 0, 101)
         ROC = np.zeros((101, 2))
@@ -171,7 +169,6 @@ class EvaluateRegressor:
         self.inputUrl1 = args["input"][0]["value"]
         self.outputUrl1 = args["output"][0]["value"]
         self.labelCol = args["param"]["label"]
-        self.posLabel = args["param"]["posLabel"]
         self.originalDF = None
         self.metric_df = None
 
@@ -225,7 +222,7 @@ class EvaluateClustering:
     def getIn(self):
         # sklearn等模型加载
         self.logger.debug("using scikit-learn")
-        self.originalDF = self.dataUtil.PyReadHive(self.inputUrl1).select([self.featureCols, "prediction"], axis=1)
+        self.originalDF = self.dataUtil.PyReadHive(self.inputUrl1)
         # self.originalDF = data.PyReadCSV(self.inputUrl2)
 
     def execute(self):

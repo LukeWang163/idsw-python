@@ -5,7 +5,9 @@ import os
 import json
 import base64
 import logging
+import logging.config
 import utils
+logging.config.fileConfig('logging.ini')
 
 
 if __name__ == "__main__":
@@ -18,8 +20,10 @@ if __name__ == "__main__":
         b64str += "=" * pad
         return base64.b64decode(b64str)
 
-    args = json.loads(_parse_args(sys.argv[1]))
-    args2 = json.loads(_parse_args(sys.argv[2]))
+    args = json.loads(sys.argv[1])
+    args2 = json.loads(sys.argv[2])
+    #args = json.loads(_parse_args(sys.argv[1]))
+    #args2 = json.loads(_parse_args(sys.argv[2]))
     # get the second argument from the command line
     # split this into module name and class name
     className = args["class"].split(".")[-1]
@@ -27,7 +31,9 @@ if __name__ == "__main__":
     # get pointers to the objects based on the string names
     classType = args["classType"]
     # get ML model type
-    modelPath = args["input"][0]["value"] if args["input"][0]["type"] == "model" else None
+    modelPath = None
+    if len(args["input"]) != 0:
+        modelPath = args["input"][0]["value"] if args["input"][0]["type"] == "model" else None
     chosenClass = None
 
     if classType == "Py.Distributed":
@@ -52,6 +58,7 @@ if __name__ == "__main__":
 
     # initialize processing class
     currentClass = chosenClass(args, args2)
+
     logger = logging.getLogger(currentClass.__class__.__name__)
     # get input
     currentClass.getIn()

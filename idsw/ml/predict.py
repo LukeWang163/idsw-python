@@ -6,8 +6,6 @@
 # @Desc    : Scripts for generating predictions for test data based on trained models. 机器学习->预测->预测
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class Predict:
@@ -28,7 +26,6 @@ class Predict:
         self.originalDF = None
         self.transformDF = None
         self.model = None
-        self.result = None
 
         self.dataUtil = utils.dataUtil(args2)
 
@@ -42,7 +39,7 @@ class Predict:
 
     def execute(self):
         # sklearn等模型评估
-        self.transformDF = self.originalDF[self.featureCols]
+        self.transformDF = self.originalDF.copy()
         self.logger.info(f"predicting {str(type(self.model))} model")
         # judge type
         modelType = None
@@ -100,7 +97,7 @@ class Predict:
     def setOut(self):
         self.logger.info("saving predicting result to %s" % self.outputUrl1)
         # data.PyWriteCSV(self.result, self.outputUrl1)
-        self.dataUtil.PyWriteHive(self.result, self.outputUrl1)
+        self.dataUtil.PyWriteHive(self.transformDF, self.outputUrl1)
 
 
 class AssignToCluster:

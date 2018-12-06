@@ -6,8 +6,6 @@
 # @Desc    : Scripts for initializing regression models. 机器学习->模型初始化->回归
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class RandomForest:

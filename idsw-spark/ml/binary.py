@@ -5,9 +5,7 @@
 # @File    : idsw.ml.binary.py
 # @Desc    : Scripts for initializing binary classification models. 机器学习->模型初始化->二分类
 import logging
-import logging.config
 import utils
-logging.config.fileConfig('logging.ini')
 
 
 class RandomForest:

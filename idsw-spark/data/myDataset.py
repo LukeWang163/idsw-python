@@ -6,8 +6,6 @@
 # @Desc    : read dataset from HDFS and then write to HIVE
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class File2Hive:

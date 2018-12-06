@@ -4,7 +4,7 @@
 # @Author  : Luke
 # @File    : myDataset.py
 # @Desc    : read dataset from HDFS and then write to HIVE
-
+import logging
 import utils
 
 
@@ -16,6 +16,7 @@ class File2Hive:
         inputUrl: String
         outputUrl: String
         """
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.originalDF = None
         self.outputUrl1 = args["output"][0]["value"]
 

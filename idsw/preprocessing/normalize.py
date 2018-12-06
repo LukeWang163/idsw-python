@@ -6,8 +6,6 @@
 # @Desc    : Scripts for normalizing data in different ways. 数据预处理->数据标准化
 import utils
 import logging
-import logging.config
-logging.config.fileConfig("logging.ini")
 
 
 class GroupIntoBins:
@@ -42,7 +40,7 @@ class NormalizeData:
     def getIn(self):
         # self.originalDF = data.PyReadCSV(self.inputUrl1)
         self.originalDF = self.dataUtil.PyReadHive(self.inputUrl1)
-        if self.outputUrl2 == "":
+        if self.inputUrl2 == "":
             self.logger.info("will execute fit_transform")
         else:
             # self.parameterDF = data.PyReadCSV(self.inputUrl2)
@@ -54,6 +52,7 @@ class NormalizeData:
         def minMax():
             self.logger.info("conducting Min-Max Scaling")
             if (self.parameterDF is None) & (self.columns is not None):
+                self.logger.info("fit_transforming min-max scaling")
                 # 没有提供参数表，执行fit_transform操作
                 from sklearn.preprocessing import MinMaxScaler
                 scaler = MinMaxScaler()
@@ -71,6 +70,7 @@ class NormalizeData:
         def standard():
             self.logger.info("conducting Standard Scaling")
             if (self.parameterDF is None) & (self.columns is not None):
+                self.logger.info("fit_transforming standard scaling")
                 # 没有提供参数表，执行fit_transform操作
                 from sklearn.preprocessing import StandardScaler
                 standardScaler = StandardScaler()
@@ -93,5 +93,6 @@ class NormalizeData:
         modes[mode]()
 
     def setOut(self):
-        self.dataUtil.PyWriteCSV(self.transformedDF, self.outputUrl1)
-        self.dataUtil.PyWriteCSV(self.parameterDF, self.outputUrl2)
+        self.logger.info("writing transformedDF to %s" % self.outputUrl1)
+        self.dataUtil.PyWriteHive(self.transformedDF, self.outputUrl1)
+        self.dataUtil.PyWriteHive(self.parameterDF, self.outputUrl2)

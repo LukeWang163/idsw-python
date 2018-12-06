@@ -6,8 +6,6 @@
 # @Desc    : Scripts for manipulating data. 数据预处理->数据操作
 import utils
 import logging
-import logging.config
-logging.config.fileConfig("logging.ini")
 
 
 class Join:

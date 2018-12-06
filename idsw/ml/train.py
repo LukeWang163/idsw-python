@@ -6,8 +6,6 @@
 # @Desc    : Scripts for initializing binary classification models. 机器学习->模型训练
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class TrainModel:
@@ -107,7 +105,7 @@ class TrainClustering:
         featureCols = self.param["features"]
 
         # 训练sklearn等聚类模型
-        if "cluster" in self.inputUrl1:
+        if "Cluster" in self.inputUrl1:
             self.logger.info("training clustering model")
             self.model.fit(self.originalDF[featureCols])
             self.transformDF["prediction"] = self.model.labels_

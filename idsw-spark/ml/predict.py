@@ -6,8 +6,6 @@
 # @Desc    : Scripts for generating predictions for test data based on trained models. 机器学习->预测->预测
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class Predict:

@@ -6,8 +6,6 @@
 # @Desc    : Scripts for sampling and spliting. 数据预处理->采样/过滤
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class SampleData:

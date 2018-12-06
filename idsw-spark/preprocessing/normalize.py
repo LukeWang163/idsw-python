@@ -6,8 +6,6 @@
 # @Desc    : Scripts for normalizing data in different ways. 数据预处理->数据标准化
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class GroupIntoBins:

@@ -6,8 +6,6 @@
 # @Desc    : Scripts for initializing multi-class classification models. 机器学习->模型初始化->多分类
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class KNN:

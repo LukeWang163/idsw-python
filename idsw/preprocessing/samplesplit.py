@@ -4,15 +4,15 @@
 # @Author  : Luke
 # @File    : idsw.preprocessing.samplesplit.py
 # @Desc    : Scripts for sampling and spliting. 数据预处理->采样/过滤
-
+import logging
 import utils
 
 
-class PySampleData:
+class SampleData:
     pass
 
 
-class PySplitData:
+class SplitData:
     def __init__(self, args, args2):
         """
         Standalone version for split data, including byRatio and byThreshold
@@ -22,6 +22,7 @@ class PySplitData:
         thresholdColumn: stirng
         threshold: double
         """
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.originalDF = None
         self.DF1 = None
         self.DF2 = None
@@ -52,6 +53,7 @@ class PySplitData:
             self.DF2 = self.originalDF[self.originalDF[thresholdColumn] < threshold]
 
         mode = self.param["splitBy"]
+        self.logger.info("splitting by %s" % mode)
         modes = {"byRatio": splitByRatio, "byThreshold": splitByThreshold}
         modes[mode]()
 

@@ -5,10 +5,7 @@
 # @File    : idsw.ml.clustering.py
 # @Desc    : Scripts for initializing clustering models. 机器学习->模型初始化->聚类
 import logging
-import logging.config
 import utils
-
-logging.config.fileConfig('logging.ini')
 
 
 class KMeans:

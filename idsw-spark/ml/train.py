@@ -6,8 +6,6 @@
 # @Desc    : Scripts for initializing binary classification models. 机器学习->模型训练
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class TrainModel:

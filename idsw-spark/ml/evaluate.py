@@ -6,8 +6,6 @@
 # @Desc    : Evaluation scripts for our built models.
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class CrossValidate:

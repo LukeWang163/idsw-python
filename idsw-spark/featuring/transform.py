@@ -6,8 +6,6 @@
 # @Desc    : Scripts for feature transformation. 特征工程->特征变换
 import utils
 import logging
-import logging.config
-logging.config.fileConfig('logging.ini')
 
 
 class PCA:

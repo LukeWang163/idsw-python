@@ -35,7 +35,7 @@ def init_spark():
     from pyspark.sql import SparkSession
     spark = SparkSession \
         .builder \
-        .master("yarn") \
+        .master("local") \
         .enableHiveSupport() \
         .getOrCreate()
     spark.sparkContext.setLogLevel('ERROR')
@@ -45,6 +45,7 @@ def init_spark():
 class dataUtil:
     def __init__(self, args):
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.hive_url = args["hive.url"]
         self.hive_user = args["hive.username"]
         self.hive_passwd = args["hive.password"]
         self.hdfs_url = args["hdfs.url"]
@@ -56,7 +57,10 @@ class dataUtil:
         @return: pyhive.Connection
         """
         from pyhive import hive
-        conn = hive.Connection(host='127.0.0.1', port='10000',
+        from urllib.parse import urlsplit
+
+        hive_arr = urlsplit(self.hive_url).netloc.split(":")
+        conn = hive.Connection(host=hive_arr[0], port=int(hive_arr[1]),
                                username=self.hive_user,
                                password=self.hive_passwd,
                                auth='CUSTOM', configuration={"hive.resultset.use.unique.column.names": "false"})
@@ -71,8 +75,8 @@ class dataUtil:
         # url = subprocess.check_output("hdfs getconf -confKey fs.defaultFS", shell=True)
         # root = ET.parse(os.getenv("HADOOP_HOME") + "/etc/hadoop/core-site.xml").getroot()
         # url = [i[1].text for i in root.iter(tag="property") if i[0].text == "fs.defaultFS"][0]
-        arr = urlsplit(self.hdfs_url).netloc.split(":")
-        return HDFileSystem(host=arr[0], port=int(arr[1]))# , user=self.hdfs_user)
+        hdfs_arr = urlsplit(self.hdfs_url).netloc.split(":")
+        return HDFileSystem(host=hdfs_arr[0], port=int(hdfs_arr[1]))# , user=self.hdfs_user)
 
     def PyReadParquet(self, inputUrl):
         """
@@ -142,11 +146,15 @@ class dataUtil:
         cursor.execute("drop table if exists %s" % outputUrl)
         cursor.execute("create table %s (%s) row format delimited fields terminated by '\t'" % (outputUrl, dtypeString))
         # 将数据写到本地临时txt文件
-        df.to_csv("/tmp/" + outputUrl + ".txt", header=False, index=False, sep="\t")
+        # df.to_csv("/tmp/" + outputUrl + ".txt", header=False, index=False, sep="\t")
+        hdfs = self._get_HDFS_connection()
+        with hdfs.open("/data/tmp/" + outputUrl + ".txt", "wb") as writer:
+            df.to_csv(writer,  header=False, index=False, sep="\t", encoding='utf-8')
         # 将本地临时txt文件内容插入表
-        cursor.execute("load data local inpath '%s' overwrite into table %s" % ("/tmp/" + outputUrl + ".txt", outputUrl))
+        cursor.execute("load data inpath '%s' overwrite into table %s" % ("/data/tmp/" + outputUrl + ".txt", outputUrl))
         # 删除本地临时txt文件
-        os.remove("/tmp/" + outputUrl + ".txt")
+        # os.remove("/tmp/" + outputUrl + ".txt")
+        #hdfs.rm("/data/tmp/" + outputUrl + ".txt")
         cursor.close()
         conn.close()
         self.logger.info("writen to Hive")
@@ -172,8 +180,19 @@ class dataUtil:
         @return:
         """
         hdfs = self._get_HDFS_connection()
-        with hdfs.open(outputUrl) as writer:
+        with hdfs.open(outputUrl, "wb") as writer:
             df.to_csv(writer, index=False, encoding='utf-8')
+
+    def PyWriteTXT(self, df, outputUrl):
+        """
+        Standalone version for writing dataframe to CSV file
+        @param df: Pandas.DataFrame
+        @param outputUrl: String
+        @return:
+        """
+        hdfs = self._get_HDFS_connection()
+        with hdfs.open(outputUrl, "wb") as writer:
+            df.to_csv(writer, header=False, index=False, sep="\t", encoding='utf-8')
 
     @staticmethod
     def SparkReadHive(inputUrl, spark):

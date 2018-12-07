@@ -47,34 +47,29 @@ class Predict:
         modelType = None
         try:
             if len(self.model.stages) == 4:
-                labelList = self.model.stages[2].numClasses
+                numClasses = self.model.stages[2].numClasses
+                labelList = self.model.stages[1].labels
+                if numClasses == 2:
+                    self.logger.info("predicting binary classification model")
+                    modelType = "Binary"
+
+                elif numClasses > 2:
+                    self.logger.info("predicting multi-class classification model")
+                    modelType = "Multi"
 
             elif len(self.model.stages) == 2:
-                labelList = self.model.stages[1].numClasses
-
+                import pyspark.ml.clustering
+                if not isinstance(self.model, pyspark.ml.clustering.KMeans):
+                    self.logger.info("predicting regression model")
+                    modelType = "Reg"
             else:
-                labelList = None
                 self.logger.error("not supported pipelinemodel")
-
-            self.logger.info("predicting classification model")
-
-            if len(labelList) == 2:
-                self.logger.info("predicting binary classification model")
-                modelType = "binary"
-
-            elif len(labelList) > 2:
-                self.logger.info("predicting multi-class classification model")
-                modelType = "multi"
-
-        except AttributeError as e:
-            import pyspark.ml.clustering
-            if not isinstance(self.model, pyspark.ml.clustering.KMeans):
-                self.logger.info("predicting regression model")
-                modelType = "reg"
-            else:
-                self.logger.error("not supported")
                 import sys
                 sys.exit(0)
+        except AttributeError as e:
+            self.logger.error("not supported")
+            import sys
+            sys.exit(0)
 
         def executeCla():
             from pyspark.sql.functions import udf, col
@@ -86,33 +81,22 @@ class Predict:
 
                 return udf(to_array_, ArrayType(DoubleType()))(col)
 
-            if len(self.model.stages) == 4:
-                self.transformDF = self.model.transform(self.originalDF) \
-                    .drop("features", "indexedLabel", "rawPrediction", "prediction") \
-                    .withColumnRenamed("originalLabel", "prediction") \
-                    .withColumn("predicted_proba", to_array(col("probability")))
+            self.transformDF = self.model.transform(self.originalDF) \
+                .drop("features", "indexedLabel", "rawPrediction", "prediction") \
+                .withColumnRenamed("originalLabel", "prediction") \
+                .withColumn("predicted_proba", to_array(col("probability")))
 
-                for i in range(len(labelList)):
-                    self.transformDF = self.transformDF\
-                        .withColumn("predicted as '%s'" % str(labelList[i]), col("predicted_proba")[i])
-                self.transformDF = self.transformDF.drop("probability", "predicted_proba")
-
-            elif len(self.model.stages) == 2:
-                self.transformDF = self.model.transform(self.originalDF) \
-                    .drop("features", "rawPrediction") \
-                    .withColumn("predicted_proba", to_array(col("probability")))
-
-                for i in range(len(labelList)):
-                    self.transformDF = self.transformDF \
-                        .withColumn("predicted as '%s'" % str(labelList[i]), col("predicted_proba")[i])
-                self.transformDF = self.transformDF.drop("probability", "predicted_proba")
+            for i in range(len(labelList)):
+                self.transformDF = self.transformDF\
+                    .withColumn("predicted as '%s'" % str(labelList[i]), col("predicted_proba")[i])
+            self.transformDF = self.transformDF.drop("probability", "predicted_proba")
 
         def executeReg():
             self.transformDF = self.model.transform(self.originalDF) \
                 .drop("features")
 
         # 三类模型
-        modelTypes = {"binary": executeCla, "multi": executeCla, "reg": executeReg}
+        modelTypes = {"Binary": executeCla, "Multi": executeCla, "Reg": executeReg}
         if modelType is not None:
             modelTypes[modelType]()
         else:

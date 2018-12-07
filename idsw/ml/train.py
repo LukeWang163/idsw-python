@@ -42,7 +42,7 @@ class TrainModel:
         if (not isinstance(self.model, sklearn.cluster.k_means_.KMeans)) & (
                 not isinstance(self.model, sklearn.cluster.dbscan_.DBSCAN)):
 
-            if "binary" in self.inputUrl1:
+            if "Binary" in self.inputUrl1:
                 self.logger.info("training binary classification model")
                 if len(self.originalDF[labelCol].unique()) != 2:
                     self.logger.error("training data has more than 2 classes. Exiting...")
@@ -51,11 +51,11 @@ class TrainModel:
                 else:
                     self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
 
-            elif "multi" in self.inputUrl1:
+            elif "Multi" in self.inputUrl1:
                 self.logger.info("training multi-class classification model")
                 self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
 
-            elif "reg" in self.inputUrl1:
+            elif "Reg" in self.inputUrl1:
                 self.logger.info("training regression model")
                 self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
 

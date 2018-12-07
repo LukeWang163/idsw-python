@@ -154,7 +154,7 @@ class dataUtil:
         cursor.execute("load data inpath '%s' overwrite into table %s" % ("/data/tmp/" + outputUrl + ".txt", outputUrl))
         # 删除本地临时txt文件
         # os.remove("/tmp/" + outputUrl + ".txt")
-        #hdfs.rm("/data/tmp/" + outputUrl + ".txt")
+        # hdfs.rm("/data/tmp/" + outputUrl + ".txt")
         cursor.close()
         conn.close()
         self.logger.info("writen to Hive")
@@ -202,7 +202,7 @@ class dataUtil:
         @param spark: SparkSession
         @return: pyspark.sql.DataFrame
         """
-        return spark.sql("select * from " + inputUrl)
+        return spark.table(inputUrl)
 
     @staticmethod
     def SparkWriteHive(DF, outputUrl):

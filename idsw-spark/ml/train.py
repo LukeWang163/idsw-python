@@ -45,10 +45,11 @@ class TrainModel:
         import pyspark.ml.clustering
         from pyspark.ml.feature import VectorAssembler, StringIndexer, IndexToString
         from pyspark.sql.types import StringType
-
+        print(type(self.model))
+        print(self.inputUrl1)
         if not isinstance(self.model, pyspark.ml.clustering.KMeans):
 
-            if "binary" in self.inputUrl1:
+            if "Binary" in self.inputUrl1:
                 self.logger.info("training binary classification model")
                 if self.originalDF.select(labelCol).distinct().count() != 2:
                     self.logger.error("training data has more than 2 classes. Exiting...")
@@ -70,7 +71,7 @@ class TrainModel:
                                                     self.model])
                     self.pipelineModel = pipeline.fit(self.originalDF)
 
-            elif "multi" in self.inputUrl1:
+            elif "Multi" in self.inputUrl1:
                 self.logger.info("training multi-class classification model")
                 if isinstance(self.originalDF.schema[labelCol].dataType, StringType):
                     # 使用StringIndexer把标签列转为数值类型，使用IndexToString转回
@@ -87,7 +88,7 @@ class TrainModel:
                                                 self.model])
                 self.pipelineModel = pipeline.fit(self.originalDF)
 
-            elif "reg" in self.inputUrl1:
+            elif "Reg" in self.inputUrl1:
                 self.logger.info("training regression model")
                 self.model.setParams(featuresCol="features", labelCol=labelCol)
                 # 使用VectorAssembler将特征列聚合成一个DenseVector

@@ -20,10 +20,10 @@ if __name__ == "__main__":
         b64str += "=" * pad
         return base64.b64decode(b64str)
 
-    args = json.loads(sys.argv[1])
-    args2 = json.loads(sys.argv[2])
-    # args = json.loads(_parse_args(sys.argv[1]))
-    # args2 = json.loads(_parse_args(sys.argv[2]))
+    # args = json.loads(sys.argv[1])
+    # args2 = json.loads(sys.argv[2])
+    args = json.loads(_parse_args(sys.argv[1]))
+    args2 = json.loads(_parse_args(sys.argv[2]))
     # get the second argument from the command line
     # split this into module name and class name
     className = args["class"].split(".")[-1]
@@ -51,7 +51,7 @@ if __name__ == "__main__":
                     chosenClass = getattr(importlib.import_module("idsw." + moduleName), className)
             except OSError as e:
                 # if str(e) == "Could not open file: %s, mode: rb File does not exist: %s" % (modelPath, modelPath):
-                 chosenClass = getattr(importlib.import_module("idsw-spark." + moduleName), className)
+                hosenClass = getattr(importlib.import_module("idsw-spark." + moduleName), className)
         # 如果没有涉及机器学习模型，则认为默认使用单机模块
         else:
             chosenClass = getattr(importlib.import_module("idsw." + moduleName), className)

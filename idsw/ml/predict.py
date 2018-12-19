@@ -49,18 +49,18 @@ class Predict:
 
             if len(labelList) == 2:
                 self.logger.info("predicting binary classification model")
-                modelType = "binary"
+                modelType = "Binary"
 
             elif len(labelList) > 2:
                 self.logger.info("predicting multi-class classification model")
-                modelType = "multi"
+                modelType = "Multi"
 
         except AttributeError as e:
             import sklearn.cluster
             if (not isinstance(self.model, sklearn.cluster.k_means_.KMeans)) & (
                     not isinstance(self.model, sklearn.cluster.dbscan_.DBSCAN)):
                 self.logger.info("predicting regression model")
-                modelType = "reg"
+                modelType = "Reg"
 
             else:
                 self.logger.error("not supported")
@@ -86,7 +86,7 @@ class Predict:
             self.transformDF["prediction"] = predicted
 
         # 三类模型
-        modelTypes = {"binary": executeBinary, "multi": executeMulti, "reg": executeReg}
+        modelTypes = {"Binary": executeBinary, "Multi": executeMulti, "Reg": executeReg}
         if modelType is not None:
             modelTypes[modelType]()
         else:

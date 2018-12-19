@@ -43,17 +43,25 @@ class EvaluateBinaryClassifier:
         import pandas as pd
         import numpy as np
         from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, log_loss, confusion_matrix
-
-        accuracy = accuracy_score(self.originalDF[self.labelCol], self.originalDF["prediction"])
-        precision = precision_score(self.originalDF[self.labelCol], self.originalDF["prediction"],
-                                    pos_label=self.posLabel)
-        recall = recall_score(self.originalDF[self.labelCol], self.originalDF["prediction"],
-                              pos_label=self.posLabel)
-        f1 = f1_score(self.originalDF[self.labelCol], self.originalDF["prediction"],
-                      pos_label=self.posLabel)
-        auc = roc_auc_score(self.originalDF[self.labelCol].apply(lambda x: 1 if str(x) == str(self.posLabel) else 0),
-                            self.originalDF["predicted as '%s'" % (str(self.posLabel))])
-        logloss = log_loss(self.originalDF[self.labelCol], self.originalDF["predicted as '%s'" % (str(self.posLabel))])
+        y_true = self.originalDF[self.labelCol]
+        y_pred = self.originalDF["prediction"]
+        if self.posLabel not in y_true:
+            if int(self.posLabel) in y_true:
+                self.posLabel = int(self.posLabel)
+            elif float(self.posLabel) in y_true:
+                self.posLabel = float(self.labelCol)
+        try:
+            accuracy = accuracy_score(y_true, y_pred)
+            precision = precision_score(y_true, y_pred, pos_label=self.posLabel)
+            recall = recall_score(y_true, y_pred, pos_label=self.posLabel)
+            f1 = f1_score(y_true, y_pred, pos_label=self.posLabel)
+            auc = roc_auc_score(y_true.apply(lambda x: 1 if str(x) == str(self.posLabel) else 0),
+                                self.originalDF["predicted as '%s'" % (str(self.posLabel))])
+            logloss = log_loss(y_true, self.originalDF["predicted as '%s'" % (str(self.posLabel))])
+        except ValueError:
+            self.logger.error("Not a valid pos_label")
+            import sys
+            sys.exit(0)
 
         metric_dict = {"accuracy": accuracy, "recall": recall, "precision": precision, "f1 score": f1, "auc": auc,
                        "logloss": logloss}
@@ -131,17 +139,22 @@ class EvaluateMultiClassClassifier:
     def execute(self):
         import pandas as pd
         from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-
-        accuracy = accuracy_score(self.originalDF[self.labelCol], self.originalDF["prediction"])
-        precision_micro = precision_score(self.originalDF[self.labelCol], self.originalDF["prediction"], average="micro")
-        recall_micro = recall_score(self.originalDF[self.labelCol], self.originalDF["prediction"], average="micro")
-        f1_micro = f1_score(self.originalDF[self.labelCol], self.originalDF["prediction"], average="micro")
-        precision_macro = precision_score(self.originalDF[self.labelCol], self.originalDF["prediction"], average="macro")
-        recall_macro = recall_score(self.originalDF[self.labelCol], self.originalDF["prediction"], average="macro")
-        f1_macro = f1_score(self.originalDF[self.labelCol], self.originalDF["prediction"], average="macro")
+        y_true = self.originalDF[self.labelCol]
+        y_pred = self.originalDF["prediction"]
+        accuracy = accuracy_score(y_true, y_pred)
+        precision_micro = precision_score(y_true, y_pred, average="micro")
+        recall_micro = recall_score(y_true, y_pred, average="micro")
+        f1_micro = f1_score(y_true, y_pred, average="micro")
+        precision_macro = precision_score(y_true, y_pred, average="macro")
+        recall_macro = recall_score(y_true, y_pred, average="macro")
+        f1_macro = f1_score(y_true, y_pred, average="macro")
 
         labelList = [col.split("'")[1] for col in self.originalDF.columns if "predicted as " in col]
-        cm = confusion_matrix(self.originalDF[self.labelCol], self.originalDF["prediction"], labels=labelList)
+        unique_label = y_true.unique()
+        label_list = [
+            label if label in unique_label else float(label) if float(label) in unique_label else int(label) if int(
+                label) in unique_label else None for label in labelList]
+        cm = confusion_matrix(y_true, y_pred, labels=labelList)
         cm_dict = dict([(labelList[i], cm[:, i]) for i in range(len(labelList))])
 
         metric_dict = {"accuracy": accuracy, "micro-precision": precision_micro, "micro-recall": recall_micro,
@@ -184,12 +197,13 @@ class EvaluateRegressor:
         import pandas as pd
         import numpy as np
         from sklearn.metrics import r2_score, mean_squared_error, median_absolute_error
-
-        r2 = r2_score(self.originalDF[self.labelCol], self.originalDF["prediction"])
-        rmse = np.sqrt(mean_squared_error(self.originalDF[self.labelCol], self.originalDF["prediction"]))
-        mae = median_absolute_error(self.originalDF[self.labelCol], self.originalDF["prediction"])
-        SSE = ((self.originalDF[self.labelCol] - self.originalDF["prediction"]) ** 2).sum(axis=0)
-        SST = ((self.originalDF[self.labelCol] - np.average(self.originalDF["prediction"], axis=0)) ** 2).sum(axis=0)
+        y_true = self.originalDF[self.labelCol]
+        y_pred = self.originalDF["prediction"]
+        r2 = r2_score(y_true, y_pred)
+        rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+        mae = median_absolute_error(y_true, y_pred)
+        SSE = ((y_true - y_pred) ** 2).sum(axis=0)
+        SST = ((y_true - np.average(y_pred, axis=0)) ** 2).sum(axis=0)
         SSR = SST - SSE
 
         self.metric_df = pd.DataFrame.from_dict(

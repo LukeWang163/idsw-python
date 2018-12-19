@@ -94,7 +94,7 @@ class dataUtil:
         from sklearn.externals import joblib
         hdfs = self._get_HDFS_connection()
         with hdfs.open(outputUrl, "wb") as writer:
-            joblib.dump(model, writer, compress=True)
+            joblib.dump(model, writer)
 
     def PyReadModel(self, inputUrl):
         from sklearn.externals import joblib

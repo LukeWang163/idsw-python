@@ -6,7 +6,7 @@
 # @Desc    : Utils for idsw modules, including establishing Hive connection, map dataframe dtyps to hive dtypes, etc.
 import logging
 import logging.config
-logging.config.fileConfig('logging.ini')
+logging.config.fileConfig('./logging.ini')
 
 
 def mapping_df_types(df):
@@ -59,8 +59,8 @@ class dataUtil:
         from pyhive import hive
         from urllib.parse import urlsplit
 
-        hive_arr = urlsplit(self.hive_url).netloc.split(":")
-        conn = hive.Connection(host=hive_arr[0], port=int(hive_arr[1]),
+        # hive_arr = urlsplit(self.hive_url).netloc.split(":")
+        conn = hive.Connection(host="10.111.25.138", port=10000,
                                username=self.hive_user,
                                password=self.hive_passwd,
                                auth='CUSTOM', configuration={"hive.resultset.use.unique.column.names": "false"})
@@ -76,7 +76,7 @@ class dataUtil:
         # root = ET.parse(os.getenv("HADOOP_HOME") + "/etc/hadoop/core-site.xml").getroot()
         # url = [i[1].text for i in root.iter(tag="property") if i[0].text == "fs.defaultFS"][0]
         hdfs_arr = urlsplit(self.hdfs_url).netloc.split(":")
-        return HDFileSystem(host=hdfs_arr[0], port=int(hdfs_arr[1]))# , user=self.hdfs_user)
+        return HDFileSystem(host=hdfs_arr[0], port=int(hdfs_arr[1]), user=self.hdfs_user)
 
     def PyReadParquet(self, inputUrl):
         """
@@ -91,15 +91,19 @@ class dataUtil:
         return df
 
     def PyWriteModel(self, model, outputUrl):
-        from sklearn.externals import joblib
+        import joblib
         hdfs = self._get_HDFS_connection()
-        with hdfs.open(outputUrl, "wb") as writer:
-            joblib.dump(model, writer)
+        
+        try:
+            with hdfs.open(outputUrl.replace("hdfs://",""), "wb") as writer:
+                joblib.dump(model, writer)
+        except Exception as e:
+            print(e)
 
     def PyReadModel(self, inputUrl):
-        from sklearn.externals import joblib
+        import joblib
         hdfs = self._get_HDFS_connection()
-        with hdfs.open(inputUrl) as reader:
+        with hdfs.open(inputUrl.replace("hdfs://", "")) as reader:
             model = joblib.load(reader)
         return model
 

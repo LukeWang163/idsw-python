@@ -41,28 +41,8 @@ class TrainModel:
         import sklearn.cluster
         if (not isinstance(self.model, sklearn.cluster.k_means_.KMeans)) & (
                 not isinstance(self.model, sklearn.cluster.dbscan_.DBSCAN)):
+            self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
 
-            if "Binary" in self.inputUrl1:
-                self.logger.info("training binary classification model")
-                if len(self.originalDF[labelCol].unique()) != 2:
-                    self.logger.error("training data has more than 2 classes. Exiting...")
-                    import sys
-                    sys.exit(0)
-                else:
-                    self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
-
-            elif "Multi" in self.inputUrl1:
-                self.logger.info("training multi-class classification model")
-                self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
-
-            elif "Reg" in self.inputUrl1:
-                self.logger.info("training regression model")
-                self.model.fit(self.originalDF[featureCols], self.originalDF[labelCol])
-
-            else:
-                self.logger.error("not supported")
-                import sys
-                sys.exit(0)
         else:
             self.logger.error("not supported")
             import sys
@@ -105,7 +85,9 @@ class TrainClustering:
         featureCols = self.param["features"]
 
         # 训练sklearn等聚类模型
-        if "Cluster" in self.inputUrl1:
+        import sklearn.cluster
+        if (isinstance(self.model, sklearn.cluster.k_means_.KMeans)) or (
+                isinstance(self.model, sklearn.cluster.dbscan_.DBSCAN)):
             self.logger.info("training clustering model")
             self.model.fit(self.originalDF[featureCols])
             self.transformDF["prediction"] = self.model.labels_

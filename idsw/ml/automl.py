@@ -182,6 +182,7 @@ class Predict:
         self.logger.info(f"predicting {str(self.model.__class__)} model")
         # judge type
         modelType = None
+        print(self.model.target_type)
         try:
             if self.model.target_type == "binary":
                 labelList = self.model._automl._classes[0]

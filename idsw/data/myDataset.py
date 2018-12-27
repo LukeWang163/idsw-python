@@ -19,7 +19,7 @@ class File2Hive:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.originalDF = None
         self.outputUrl1 = args["output"][0]["value"]
-
+        
         self.type = args["param"]["type"]
         self.inputUrl1 = args["param"]["path"]
         self.DF = None

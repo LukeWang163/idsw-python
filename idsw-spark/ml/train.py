@@ -43,52 +43,22 @@ class TrainModel:
         # 训练Spark等模型
         from pyspark.ml import Pipeline
         import pyspark.ml.clustering
+        import pyspark.ml.classification
         from pyspark.ml.feature import VectorAssembler, StringIndexer, IndexToString
         from pyspark.sql.types import StringType
         print(type(self.model))
         print(self.inputUrl1)
         if not isinstance(self.model, pyspark.ml.clustering.KMeans):
-
-            if "Binary" in self.inputUrl1:
-                self.logger.info("training binary classification model")
-                if self.originalDF.select(labelCol).distinct().count() != 2:
-                    self.logger.error("training data has more than 2 classes. Exiting...")
-                    import sys
-                    sys.exit(0)
-                else:
-                    if isinstance(self.originalDF.schema[labelCol].dataType, StringType):
-                        # 使用StringIndexer把标签列转为数值类型，使用IndexToString转回
-                        self.model.setParams(featuresCol="features", labelCol="indexedLabel")
-                        # 使用VectorAssembler将特征列聚合成一个DenseVector
-                        pipeline = Pipeline(stages=[VectorAssembler(inputCols=featureCols, outputCol="features"),
-                                                    StringIndexer(inputCol=labelCol, outputCol="indexedLabel"),
-                                                    self.model,
-                                                    IndexToString(inputCol="indexedLabel", outputCol="originalLabel")])
-                    else:
-                        self.model.setParams(featuresCol="features", labelCol=labelCol)
-                        # 使用VectorAssembler将特征列聚合成一个DenseVector
-                        pipeline = Pipeline(stages=[VectorAssembler(inputCols=featureCols, outputCol="features"),
-                                                    self.model])
-                    self.pipelineModel = pipeline.fit(self.originalDF)
-
-            elif "Multi" in self.inputUrl1:
-                self.logger.info("training multi-class classification model")
-                if isinstance(self.originalDF.schema[labelCol].dataType, StringType):
-                    # 使用StringIndexer把标签列转为数值类型，使用IndexToString转回
-                    self.model.setParams(featuresCol="features", labelCol="label")
-                    # 使用VectorAssembler将特征列聚合成一个DenseVector
-                    pipeline = Pipeline(stages=[VectorAssembler(inputCols=featureCols, outputCol="features"),
-                                                StringIndexer(inputCol=labelCol, outputCol="label"),
-                                                self.model,
-                                                IndexToString(inputCol="label", outputCol="originalLabel")])
-                else:
-                    self.model.setParams(featuresCol="features", labelCol=labelCol)
-                    # 使用VectorAssembler将特征列聚合成一个DenseVector
-                    pipeline = Pipeline(stages=[VectorAssembler(inputCols=featureCols, outputCol="features"),
-                                                self.model])
+            if 'pyspark.ml.classification' in str(type(self.model)):
+                self.logger.info("training classification model") 
+                # 使用StringIndexer把标签列转为数值类型，使用IndexToString转回
+                self.model.setParams(featuresCol="features", labelCol="indexedLabel")
+                # 使用VectorAssembler将特征列聚合成一个DenseVector
+                pipeline = Pipeline(stages=[VectorAssembler(inputCols=featureCols, outputCol="features"),                                                    StringIndexer(inputCol=labelCol, outputCol="indexedLabel"),
+                            self.model,
+                            IndexToString(inputCol="indexedLabel", outputCol="originalLabel")])
                 self.pipelineModel = pipeline.fit(self.originalDF)
-
-            elif "Reg" in self.inputUrl1:
+            elif 'pyspark.ml.regression' in str(type(model)):
                 self.logger.info("training regression model")
                 self.model.setParams(featuresCol="features", labelCol=labelCol)
                 # 使用VectorAssembler将特征列聚合成一个DenseVector

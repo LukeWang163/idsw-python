@@ -26,7 +26,10 @@ class EvaluateBinaryClassifier:
         self.outputUrl1 = args["output"][0]["value"]
         self.outputUrl2 = args["output"][1]["value"]
         self.labelCol = args["param"]["label"]
-        self.posLabel = args["param"]["posLabel"]
+        try:
+            self.posLabel = args["param"]["posLabel"]
+        except Exception:
+            self.posLabel = None
         self.originalDF = None
         self.metric_df = None
         self.roc_pr = None
@@ -45,6 +48,8 @@ class EvaluateBinaryClassifier:
         from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, log_loss, confusion_matrix
         y_true = self.originalDF[self.labelCol]
         y_pred = self.originalDF["prediction"]
+        if self.posLabel == None:
+            self.posLabel = y_true.value_counts().first_valid_index()
         if self.posLabel not in y_true:
             if int(self.posLabel) in y_true:
                 self.posLabel = int(self.posLabel)
@@ -69,8 +74,8 @@ class EvaluateBinaryClassifier:
             zip(["TN", "FP", "FN", "TP"], confusion_matrix(self.originalDF[self.labelCol], self.originalDF["prediction"]).ravel()))
         metric_dict.update(cm_dict)
 
-        self.metric_df = pd.DataFrame(metric_dict, index=[0])
-
+        self.metric_df = pd.DataFrame(metric_dict, index=[0])[["accuracy","recall","precision","f1 score","auc","logloss","TN","FP","FN","TP"]]
+        print(self.metric_df)
         # ROC、PR表
         T = self.originalDF["predicted as '%s'" % (str(self.posLabel))]
         Y = self.originalDF[self.labelCol].apply(lambda x: 1 if str(x) == str(self.posLabel) else 0)
@@ -103,8 +108,8 @@ class EvaluateBinaryClassifier:
             PR[i, 1] = R_t
 
         self.roc_pr = pd.DataFrame(
-            {"threshold": thresholds, "FPR": ROC[:, 0], "TPR": ROC[:, 1], "P": PR[:, 0], "R": PR[:, 1]})
-
+            {"threshold": thresholds, "FPR": ROC[:, 0], "TPR": ROC[:, 1], "P": PR[:, 0], "R": PR[:, 1]})[["threshold","FPR","TPR","P","R"]]
+     
     def setOut(self):
         self.logger.info("saving evaluation result to %s" % self.outputUrl1)
         # data.PyWriteCSV(self.result, self.outputUrl1)
@@ -155,13 +160,15 @@ class EvaluateMultiClassClassifier:
             label if label in unique_label else float(label) if float(label) in unique_label else int(label) if int(
                 label) in unique_label else None for label in labelList]
         cm = confusion_matrix(y_true, y_pred, labels=labelList)
-        cm_dict = dict([(labelList[i], cm[:, i]) for i in range(len(labelList))])
+        from collections import OrderedDict
+        # cm_dict = OrderedDict([(labelList[i], cm[:, i]) for i in range(len(labelList))])
 
-        metric_dict = {"accuracy": accuracy, "micro-precision": precision_micro, "micro-recall": recall_micro,
-                       "micro-f1": f1_micro, "macro-precision": precision_macro, "macro-recall": recall_macro,
-                       "macro_f1": f1_macro}
-        metric_dict.update(cm_dict)
-        self.metric_df = pd.DataFrame(metric_dict)
+        metric_dict = OrderedDict([("accuracy", accuracy), ("micro-precision", precision_micro), ("micro-recall", recall_micro),
+                       ("micro-f1", f1_micro), ("macro-precision", precision_macro), ("macro-recall", recall_macro),
+                       ("macro_f1", f1_macro)])
+        for i in range(len(labelList)):
+            metric_dict[labelList[i]] = cm[:, i]
+        self.metric_df = pd.DataFrame(metric_dict, columns=metric_dict.keys())
 
     def setOut(self):
         self.logger.info("saving evaluation result to %s" % self.outputUrl1)
@@ -250,7 +257,7 @@ class EvaluateClustering:
         self.logger.info("r2: %s" % silhouetteScore)
 
         self.metric_df = pd.DataFrame.from_dict(
-            OrderedDict({"accuracy": [silhouetteScore]}))
+            OrderedDict({"silhouette score": [silhouetteScore]}))
 
     def setOut(self):
         self.logger.info("saving evaluation result to %s" % self.outputUrl1)
